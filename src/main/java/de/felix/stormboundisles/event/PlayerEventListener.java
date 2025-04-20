@@ -1,5 +1,7 @@
 package de.felix.stormboundisles.event;
 
+import de.felix.stormboundisles.buffs.BuffManager;
+import de.felix.stormboundisles.points.PointManager;
 import de.felix.stormboundisles.teams.Team;
 import de.felix.stormboundisles.teams.TeamManager;
 import de.felix.stormboundisles.zones.IslandZone;
@@ -12,7 +14,6 @@ import net.minecraft.util.math.BlockPos;
  */
 public class PlayerEventListener {
 
-	// This method would be called from a Fabric event hook (e.g., PlayerMoveCallback)
 	public static void onPlayerMove(ServerPlayerEntity player, BlockPos newPos) {
 		Team team = TeamManager.getInstance().getTeamOfPlayer(player.getUuidAsString());
 		if (team == null) return;
@@ -20,13 +21,11 @@ public class PlayerEventListener {
 		if (zone == null) return;
 
 		boolean inside = zone.isInside(newPos);
-		// TODO: Call BuffManager to apply/remove buffs depending on inside/outside state
+		BuffManager.getInstance().handlePlayerOnIsland(player, inside);
 	}
 
-	// This method would be called from a Fabric event hook (e.g., PlayerDeathCallback)
 	public static void onPlayerDeath(ServerPlayerEntity player) {
-		Team team = TeamManager.getInstance().getTeamOfPlayer(player.getUuidAsString());
-		if (team == null) return;
-		// TODO: Apply death penalty using PointManager
+		// Apply death penalty and update scoreboard
+		PointManager.getInstance().applyDeathPenalty(player);
 	}
 }
