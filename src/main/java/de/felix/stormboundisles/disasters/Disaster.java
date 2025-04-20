@@ -1,7 +1,6 @@
 package de.felix.stormboundisles.disasters;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Represents a disaster definition for an island type.
@@ -9,13 +8,13 @@ import java.util.Map;
 public class Disaster {
 	private final String name;
 	private final double chancePerHour;
-	private final int durationMinutes;
-	private final List<Map<String, Object>> effects; // effect type + params
+	private final int durationSeconds;
+	private final List<DisasterEffect> effects;
 
-	public Disaster(String name, double chancePerHour, int durationMinutes, List<Map<String, Object>> effects) {
+	public Disaster(String name, double chancePerHour, int durationSeconds, List<DisasterEffect> effects) {
 		this.name = name;
 		this.chancePerHour = chancePerHour;
-		this.durationMinutes = durationMinutes;
+		this.durationSeconds = durationSeconds;
 		this.effects = effects;
 	}
 
@@ -27,11 +26,11 @@ public class Disaster {
 		return chancePerHour;
 	}
 
-	public int getDurationMinutes() {
-		return durationMinutes;
+	public int getDurationSeconds() {
+		return durationSeconds;
 	}
 
-	public List<Map<String, Object>> getEffects() {
+	public List<DisasterEffect> getEffects() {
 		return effects;
 	}
 }
