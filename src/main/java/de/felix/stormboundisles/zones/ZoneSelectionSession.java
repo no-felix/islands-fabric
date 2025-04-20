@@ -3,40 +3,40 @@ package de.felix.stormboundisles.zones;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * Helper class for admins to interactively define a zone.
  */
 public class ZoneSelectionSession {
-	private final ServerPlayerEntity admin;
+	private static final Map<UUID, ZoneSelectionSession> activeSessions = new HashMap<>();
 	private final String teamName;
-	private final List<BlockPos> points = new ArrayList<>();
+	private final List<BlockPos> selectedPoints = new ArrayList<>();
 
-	public ZoneSelectionSession(ServerPlayerEntity admin, String teamName) {
-		this.admin = admin;
+	public ZoneSelectionSession(String teamName) {
 		this.teamName = teamName;
 	}
 
-	public void addPoint(BlockPos pos) {
-		points.add(pos);
-		// TODO: Feedback: "Point added!"
+	public static void startFor(ServerPlayerEntity player, String teamName) {
+		activeSessions.put(player.getUuid(), new ZoneSelectionSession(teamName));
 	}
 
-	public List<BlockPos> getPoints() {
-		return points;
+	public static void addPoint(ServerPlayerEntity player, BlockPos pos) {
+		ZoneSelectionSession session = activeSessions.get(player.getUuid());
+		if (session != null) {
+			session.selectedPoints.add(pos);
+		}
 	}
 
-	public IslandZone toIslandZone(String islandType) {
-		return new IslandZone(teamName, new ArrayList<>(points), islandType);
+	public static void finish(ServerPlayerEntity player) {
+		ZoneSelectionSession session = activeSessions.remove(player.getUuid());
+		if (session != null && session.selectedPoints.size() >= 3) {
+			IslandZone zone = new IslandZone(session.teamName, session.selectedPoints, null);
+			ZoneManager.getInstance().addZone(zone);
+		}
 	}
 
-	public ServerPlayerEntity getAdmin() {
-		return admin;
-	}
-
-	public String getTeamName() {
-		return teamName;
+	public static boolean isActive(ServerPlayerEntity player) {
+		return activeSessions.containsKey(player.getUuid());
 	}
 }

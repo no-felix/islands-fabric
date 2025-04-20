@@ -56,4 +56,12 @@ public class MobSpawnEffect implements DisasterEffect {
 	public void cleanup(ServerWorld world, IslandZone zone, List<ServerPlayerEntity> players) {
 		// No cleanup needed for simple mob spawns
 	}
+
+	public EntityType<?> getMobType() {
+		return mobType;
+	}
+
+	public int getCount() {
+		return count;
+	}
 }

@@ -125,4 +125,8 @@ public class BuffManager {
 			}
 		};
 	}
+
+	public Set<String> getIslandTypes() {
+		return buffsByIslandType.keySet();
+	}
 }

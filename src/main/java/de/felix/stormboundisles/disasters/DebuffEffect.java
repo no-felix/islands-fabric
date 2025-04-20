@@ -43,4 +43,16 @@ public class DebuffEffect implements DisasterEffect {
 				.filter(e -> e.getKey().get().getValue().getPath().equalsIgnoreCase(name))
 				.findFirst().orElse(null);
 	}
+
+	public String getEffectName() {
+		return effectName;
+	}
+
+	public int getAmplifier() {
+		return amplifier;
+	}
+
+	public int getDurationTicks() {
+		return durationTicks;
+	}
 }

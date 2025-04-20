@@ -1,5 +1,7 @@
 package de.felix.stormboundisles.bonus;
 
+import de.felix.stormboundisles.points.PointManager;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,5 +32,7 @@ public class BonusManager {
 		return bonusPointsByTeam.getOrDefault(team, 0);
 	}
 
-	// TODO: Integrate with PointManager and scoreboard, implement admin commands, serialization
+	public int getTotalPoints(String team) {
+		return getBonus(team) + PointManager.getInstance().getPoints(team);
+	}
 }

@@ -126,4 +126,8 @@ public class DisasterManager {
 		}
 		return inZone;
 	}
+
+	public Set<String> getIslandTypes() {
+		return disastersByIslandType.keySet();
+	}
 }

@@ -1,5 +1,6 @@
 package de.felix.stormboundisles.scoreboard;
 
+import de.felix.stormboundisles.bonus.BonusManager;
 import de.felix.stormboundisles.points.PointManager;
 import de.felix.stormboundisles.teams.Team;
 import de.felix.stormboundisles.teams.TeamManager;
@@ -14,7 +15,8 @@ import java.util.List;
  * Handles sidebar scoreboard updates for all players.
  */
 public class ScoreboardManager {
-	private static final ScoreboardManager INSTANCE = new ScoreboardManager();
+	private static ScoreboardManager instance;
+
 	private static final String OBJECTIVE_NAME = "isles_points";
 	private static final Text OBJECTIVE_TITLE = Text.literal("§eStormbound Isles");
 
@@ -22,14 +24,10 @@ public class ScoreboardManager {
 	}
 
 	public static ScoreboardManager getInstance() {
-		return INSTANCE;
+		if (instance == null) instance = new ScoreboardManager();
+		return instance;
 	}
 
-	/**
-	 * Updates the sidebar scoreboard for all players.
-	 *
-	 * @param server the running Minecraft server
-	 */
 	public void updateAll(MinecraftServer server) {
 		Scoreboard scoreboard = server.getScoreboard();
 
@@ -52,7 +50,6 @@ public class ScoreboardManager {
 		// 3) Remove all old scores for this objective
 		List<ScoreHolder> toClear = new ArrayList<>();
 		for (ScoreboardEntry entry : scoreboard.getScoreboardEntries(objective)) {
-			// Extract the raw holder name and wrap it into a ScoreHolder
 			ScoreHolder holder = ScoreHolder.fromName(entry.owner());
 			toClear.add(holder);
 		}
@@ -60,14 +57,15 @@ public class ScoreboardManager {
 			scoreboard.removeScore(holder, objective);
 		}
 
-		// 4) Write fresh scores for each team
+		// 4) Write fresh scores for each team (sum of points and bonus!)
 		for (Team team : TeamManager.getInstance().getAllTeams()) {
 			String teamName = team.getName();
 			int points = PointManager.getInstance().getPoints(teamName);
+			int bonus = BonusManager.getInstance().getBonus(teamName);
+			int total = points + bonus;
 
 			ScoreHolder holder = ScoreHolder.fromName(teamName);
-			// getOrCreateScore returns a ScoreAccess which lets us set an exact value
-			scoreboard.getOrCreateScore(holder, objective).setScore(points);
+			scoreboard.getOrCreateScore(holder, objective).setScore(total);
 		}
 	}
 }

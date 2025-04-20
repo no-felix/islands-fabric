@@ -54,4 +54,8 @@ public class LightningEffect implements DisasterEffect {
 	public void cleanup(ServerWorld world, IslandZone zone, List<ServerPlayerEntity> players) {
 		// No cleanup needed for lightning
 	}
+
+	public int getStrikes() {
+		return strikes;
+	}
 }

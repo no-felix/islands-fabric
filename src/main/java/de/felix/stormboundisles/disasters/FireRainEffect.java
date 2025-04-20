@@ -51,4 +51,8 @@ public class FireRainEffect implements DisasterEffect {
 	public void cleanup(ServerWorld world, IslandZone zone, List<ServerPlayerEntity> players) {
 		// Optional: Remove leftover fire, etc.
 	}
+
+	public int getNumFireballs() {
+		return numFireballs;
+	}
 }
