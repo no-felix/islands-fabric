@@ -1,4 +1,4 @@
-package de.felix;
+package de.nofelix;
 
 import net.fabricmc.api.ClientModInitializer;
 

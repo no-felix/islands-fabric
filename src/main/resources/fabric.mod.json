@@ -16,10 +16,10 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"de.felix.StormboundIsles"
+			"de.nofelix.stormboundisles.StormboundIslesMod"
 		],
 		"client": [
-			"de.felix.StormboundIslesClient"
+			"de.nofelix.StormboundIslesClient"
 		]
 	},
 	"mixins": [

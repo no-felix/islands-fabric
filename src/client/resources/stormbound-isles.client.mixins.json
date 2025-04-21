@@ -1,9 +1,8 @@
 {
 	"required": true,
-	"package": "de.felix.mixin.client",
+	"package": "de.nofelix.mixin.client",
 	"compatibilityLevel": "JAVA_21",
 	"client": [
-		"ExampleClientMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
