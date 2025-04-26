@@ -12,18 +12,26 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 /**
- * Manages loading and providing access to mod configuration.
+ * Manages loading, accessing, and saving the mod's configuration settings.
+ * Configuration is loaded from `stormbound-isles-config.json` in the config directory.
+ * If the file doesn't exist, default values are used and a new file is created.
  */
 public final class ConfigManager {
+	/** The filename for the configuration file. */
 	private static final String CONFIG_FILENAME = "stormbound-isles-config.json";
+	/** Gson instance for JSON handling. */
 	private static final Gson GSON = new Gson();
+	/** The loaded configuration instance. */
 	private static Config config;
 
+	/** Private constructor to prevent instantiation of this utility class. */
 	private ConfigManager() {
 	}
 
 	/**
-	 * Loads the config from disk or creates a default one if missing or invalid.
+	 * Loads the configuration from the JSON file.
+	 * If the file is missing or corrupted, it creates a default configuration file
+	 * and uses the default values.
 	 */
 	public static void loadConfig() {
 		Logger log = StormboundIslesMod.LOGGER;
@@ -57,32 +65,41 @@ public final class ConfigManager {
 	}
 
 	/**
-	 * Interval (in ticks) between boundary checks.
+	 * Gets the configured interval (in ticks) between player boundary checks.
+	 * @return The boundary check interval in ticks.
 	 */
 	public static int getBoundaryCheckInterval() {
 		return config.boundaryCheckInterval;
 	}
 
 	/**
-	 * Interval (in seconds) between buff updates.
+	 * Gets the configured interval (in ticks) between applying island buffs.
+	 * Note: The config value is in seconds, but this method returns ticks.
+	 * @return The buff update interval in ticks.
 	 */
 	public static int getBuffUpdateInterval() {
-		return config.buffUpdateInterval;
+		// Convert seconds from config to ticks
+		return config.buffUpdateInterval * 20;
 	}
 
 	/**
-	 * Interval (in ticks) between disasters.
+	 * Gets the configured interval (in ticks) between potential disaster events.
+	 * @return The disaster interval in ticks.
 	 */
 	public static int getDisasterIntervalTicks() {
 		return config.disasterIntervalTicks;
 	}
 
 	/**
-	 * Holds default and loaded configuration values.
+	 * Internal class representing the structure of the configuration file.
+	 * Contains default values for all settings.
 	 */
 	private static class Config {
+		/** Interval in ticks for checking if players are outside their island boundaries. Default: 10 ticks. */
 		int boundaryCheckInterval = 10;
+		/** Interval in seconds for applying island-specific buffs. Default: 60 seconds. */
 		int buffUpdateInterval = 60;
+		/** Interval in ticks for attempting to trigger a random disaster. Default: 6000 ticks (5 minutes). */
 		int disasterIntervalTicks = 20 * 60 * 5;
 	}
 }

@@ -8,19 +8,19 @@ import net.minecraft.util.math.BlockPos;
  */
 public interface Zone {
     /**
-     * Checks if the given position is fully contained within this zone (considering all axes).
+     * Checks if the given position is fully contained within this zone, considering X, Y, and Z axes.
      *
-     * @param pos The position to check.
-     * @return True if the position is inside the zone, false otherwise.
+     * @param pos The BlockPos to check.
+     * @return {@code true} if the position is inside the zone, {@code false} otherwise.
      */
     boolean contains(BlockPos pos);
 
     /**
-     * Checks if the given position is contained within the horizontal boundaries of this zone,
+     * Checks if the given position is contained within the horizontal boundaries (X and Z axes) of this zone,
      * ignoring the Y-axis.
      *
-     * @param pos The position to check.
-     * @return True if the position's X and Z coordinates are inside the zone, false otherwise.
+     * @param pos The BlockPos to check.
+     * @return {@code true} if the position's X and Z coordinates are inside the zone, {@code false} otherwise.
      */
     boolean containsHorizontal(BlockPos pos);
 }

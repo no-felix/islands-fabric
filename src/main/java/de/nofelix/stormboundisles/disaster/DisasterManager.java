@@ -14,7 +14,8 @@ import net.minecraft.util.Formatting;
 import java.util.*;
 
 /**
- * Manages the triggering and effects of random disasters on islands.
+ * Manages the triggering and effects of random disasters on islands based on configured intervals.
+ * Disasters are chosen based on island type and apply effects to players within the island's zone.
  */
 public class DisasterManager {
 	/** Maps island types to the possible disasters that can occur on them. */
@@ -28,11 +29,11 @@ public class DisasterManager {
 
 	/** Counter for server ticks to determine when to trigger the next disaster check. */
 	private static int ticks = 0;
-	/** Set containing keys representing currently active disasters (islandId:DisasterType). */
+	/** Set containing keys representing currently active disasters (format: "islandId:DisasterType"). Used to prevent duplicates. */
 	private static final Set<String> activeDisasters = new HashSet<>();
 
 	/**
-	 * Registers the server tick event listener for disaster management.
+	 * Registers the server tick event listener used for disaster management.
 	 */
 	public static void register() {
 		ServerTickEvents.END_SERVER_TICK.register(DisasterManager::onServerTick);
@@ -40,8 +41,9 @@ public class DisasterManager {
 
 	/**
 	 * Triggers a specific disaster on a given island.
-	 * Applies effects to players on the island and broadcasts a message.
+	 * Applies effects to players currently within the island's zone and broadcasts a server-wide message.
 	 * Prevents triggering the same disaster type if it's already active on the island.
+	 * The active disaster flag is removed after a short delay.
 	 *
 	 * @param server   The Minecraft server instance.
 	 * @param islandId The ID of the island where the disaster occurs.
@@ -81,10 +83,11 @@ public class DisasterManager {
 
 	/**
 	 * Applies the specific effect of a disaster to a player.
+	 * Effects include damage, status effects (freezing, blindness, poison, levitation).
 	 *
 	 * @param player The player to apply the effect to.
 	 * @param type   The type of disaster.
-	 * @param server The Minecraft server instance (for damage sources).
+	 * @param server The Minecraft server instance (needed for damage sources).
 	 */
 	private static void applyDisasterEffect(ServerPlayerEntity player, DisasterType type, MinecraftServer server) {
 		switch (type) {
@@ -110,8 +113,10 @@ public class DisasterManager {
 	}
 
 	/**
-	 * Called every server tick. Checks if it's time to potentially trigger a new disaster.
-	 * If conditions are met, randomly selects an island and a compatible disaster type, then triggers it.
+	 * Called every server tick via the registered event listener.
+	 * Checks if the configured disaster interval (from {@link ConfigManager}) has passed.
+	 * If so, randomly selects an island and a compatible disaster type based on {@link #DEFAULTS},
+	 * then calls {@link #triggerDisaster(MinecraftServer, String, DisasterType)}.
 	 *
 	 * @param server The Minecraft server instance.
 	 */

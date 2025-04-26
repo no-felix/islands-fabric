@@ -7,14 +7,11 @@ import de.nofelix.stormboundisles.data.Team;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.entity.boss.BossBar;
-import net.minecraft.entity.boss.CommandBossBar;
 import net.minecraft.entity.boss.ServerBossBar;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.GameMode;
 import net.minecraft.world.GameRules;
@@ -22,37 +19,61 @@ import net.minecraft.world.GameRules;
 import java.util.Random;
 import java.util.UUID;
 
+/**
+ * Manages the overall game flow, including phases, timers, player states, and game events.
+ */
 public class GameManager {
-    // 1 Woche = 7 Tage = 604800 Sekunden = 12.096.000 Ticks (20 Ticks/Sekunde)
-    private static final int BUILD_TICKS = 20 * 60 * 60 * 24 * 7; // 1 Woche
-    private static final int PVP_TICKS = 20 * 60 * 60 * 24 * 7;   // 1 Woche
+    // Constants defining the duration of game phases in ticks (20 ticks = 1 second)
+    /** Duration of the build phase in ticks (e.g., 1 week). */
+    private static final int BUILD_TICKS = 20 * 60 * 60 * 24 * 7; // 1 week
+    /** Duration of the PvP phase in ticks (e.g., 1 week). */
+    private static final int PVP_TICKS = 20 * 60 * 60 * 24 * 7;   // 1 week
     
+    /** The current phase of the game. */
     public static GamePhase phase = GamePhase.LOBBY;
+    /** The number of ticks elapsed in the current game phase. */
     private static int phaseTicks = 0;
     
-    // BossBar for phase timer
-    private static final String BOSSBAR_ID = "sbi_phase";
+    // BossBar related fields
+    /** The server-side BossBar instance used to display phase information. */
     private static ServerBossBar phaseBar;
-    // Countdown before game start
+    
+    // Countdown related fields
+    /** Flag indicating if the pre-game countdown is active. */
     private static boolean isStarting = false;
+    /** Remaining ticks in the pre-game countdown. */
     private static int countdownTicks = 0;
+    /** Total duration of the pre-game countdown in ticks. */
     private static final int COUNTDOWN_TOTAL_TICKS = 20 * 10; // 10 seconds countdown
 
+    /** Random number generator for various game mechanics. */
     private static final Random random = new Random();
 
+    /**
+     * Registers game manager event listeners.
+     * Initializes BossBar restoration on server start and registers the server tick listener.
+     */
     public static void register() {
         StormboundIslesMod.LOGGER.info("Registering GameManager");
         // Restore bossbar on server start when loading from game_state
-        ServerLifecycleEvents.SERVER_STARTED.register(server -> setupBossBar(server));
+        ServerLifecycleEvents.SERVER_STARTED.register(GameManager::setupBossBar);
         ServerTickEvents.END_SERVER_TICK.register(GameManager::onServerTick);
     }
 
-    /** Returns the current phase tick count for persistence */
+    /** 
+     * Returns the current phase tick count for persistence.
+     * @return The number of ticks elapsed in the current phase.
+     */
     public static int getPhaseTicks() {
         return phaseTicks;
     }
 
-    /** Restore phase and tick count without resetting phase behavior */
+    /** 
+     * Restores the game phase and tick count without triggering phase transition logic.
+     * Used primarily for loading saved game state.
+     * @param newPhase The phase to set.
+     * @param ticks The number of ticks elapsed in that phase.
+     */
     public static void setPhaseWithoutReset(GamePhase newPhase, int ticks) {
         phase = newPhase;
         phaseTicks = ticks;
@@ -60,6 +81,8 @@ public class GameManager {
 
     /**
      * Initiates a countdown before starting the build phase.
+     * Displays a message and updates the BossBar.
+     * @param server The Minecraft server instance.
      */
     public static void startCountdown(MinecraftServer server) {
         isStarting = true;
@@ -68,6 +91,11 @@ public class GameManager {
         server.getPlayerManager().broadcast(Text.literal("Game starting in " + (COUNTDOWN_TOTAL_TICKS / 20) + " seconds..."), false);
     }
 
+    /**
+     * Starts the game, transitioning to the BUILD phase.
+     * Teleports players, sets game mode, broadcasts messages, and initializes the scoreboard.
+     * @param server The Minecraft server instance.
+     */
     public static void startGame(MinecraftServer server) {
         StormboundIslesMod.LOGGER.info("Starting game");
         setPhase(GamePhase.BUILD, server);
@@ -80,6 +108,11 @@ public class GameManager {
         ScoreboardManager.initialize(server);
     }
 
+    /**
+     * Stops the game, transitioning to the ENDED phase.
+     * Sets game mode, broadcasts messages, and hides the BossBar.
+     * @param server The Minecraft server instance.
+     */
     public static void stopGame(MinecraftServer server) {
         StormboundIslesMod.LOGGER.info("Stopping game");
         setPhase(GamePhase.ENDED, server);
@@ -92,6 +125,12 @@ public class GameManager {
         }
     }
 
+    /**
+     * Transitions the game to a new phase, applying relevant game rules and player states.
+     * Updates the BossBar and saves the game state.
+     * @param newPhase The target game phase.
+     * @param server The Minecraft server instance.
+     */
     public static void setPhase(GamePhase newPhase, MinecraftServer server) {
         StormboundIslesMod.LOGGER.info("Changing phase from {} to {}", phase, newPhase);
         phase = newPhase;
@@ -122,56 +161,65 @@ public class GameManager {
         }
     }
     
+    /**
+     * Sets up or updates the phase BossBar.
+     * Creates the BossBar if it doesn't exist and adds all online players.
+     * Configures the BossBar's appearance based on the current game state.
+     * @param server The Minecraft server instance.
+     */
     public static void setupBossBar(MinecraftServer server) {
-        // Bossbar erstellen
+        // Create or update BossBar using current phase title and color
         phaseBar = new ServerBossBar(
-            Text.literal("§b§lStormbound Isles Phase"), // Titel
-            BossBar.Color.BLUE,                         // Farbe
-            BossBar.Style.PROGRESS                      // Stil
+            getBossBarTitle(),               // Title based on current game phase
+            getBossBarColor(),               // Color based on current game phase
+            BossBar.Style.PROGRESS           // Style
         );
 
-        phaseBar.setPercent(1.0f);      // Fortschritt auf 100%
-        phaseBar.setVisible(true);      // Sichtbarkeit aktivieren
-        phaseBar.setDarkenSky(false);   // Himmel nicht abdunkeln
-        phaseBar.setThickenFog(false);  // Nebel nicht verdichten
-        phaseBar.setDragonMusic(false); // Drachenmusik deaktivieren
+        phaseBar.setPercent(1.0f);      // Set progress to 100%
+        phaseBar.setVisible(true);      // Activate visibility
+        phaseBar.setDarkenSky(false);   // Don't darken the sky
+        phaseBar.setThickenFog(false);  // Don't thicken the fog
+        phaseBar.setDragonMusic(false); // Disable dragon music
 
-        // Alle Spieler zur Bossbar hinzufügen
+        // Add all players to the BossBar
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
             phaseBar.addPlayer(player);
         }
     }
     
+    /**
+     * Gets the appropriate title text for the BossBar based on the current game phase.
+     * @return The Text object representing the BossBar title.
+     */
     private static Text getBossBarTitle() {
-        switch (phase) {
-            case LOBBY:
-                return Text.literal("Lobby Phase - Waiting to start");
-            case BUILD:
-                return Text.literal("Build Phase - PvP disabled");
-            case PVP:
-                return Text.literal("PvP Phase - Battle!");
-            case ENDED:
-                return Text.literal("Game Ended");
-            default:
-                return Text.literal("Unknown Phase");
-        }
+	    return switch (phase) {
+		    case LOBBY -> Text.literal("Lobby Phase - Waiting to start");
+		    case BUILD -> Text.literal("Build Phase - PvP disabled");
+		    case PVP -> Text.literal("PvP Phase - Battle!");
+		    case ENDED -> Text.literal("Game Ended");
+		    default -> Text.literal("Unknown Phase");
+	    };
     }
     
+    /**
+     * Gets the appropriate color for the BossBar based on the current game phase.
+     * @return The BossBar.Color enum value.
+     */
     private static BossBar.Color getBossBarColor() {
-        switch (phase) {
-            case LOBBY:
-                return BossBar.Color.WHITE;
-            case BUILD:
-                return BossBar.Color.GREEN;
-            case PVP:
-                return BossBar.Color.RED;
-            case ENDED:
-                return BossBar.Color.PURPLE;
-            default:
-                return BossBar.Color.WHITE;
-        }
+	    return switch (phase) {
+		    case LOBBY -> BossBar.Color.WHITE;
+		    case BUILD -> BossBar.Color.GREEN;
+		    case PVP -> BossBar.Color.RED;
+		    case ENDED -> BossBar.Color.PURPLE;
+		    default -> BossBar.Color.WHITE;
+	    };
     }
 
+    /**
+     * Configures server-wide PvP settings and related game rules.
+     * @param server The Minecraft server instance.
+     * @param enabled Whether PvP should be enabled.
+     */
     private static void setPvp(MinecraftServer server, boolean enabled) {
         StormboundIslesMod.LOGGER.debug("Setting PvP enabled: {}", enabled);
         server.getOverworld().getGameRules().get(GameRules.DO_IMMEDIATE_RESPAWN).set(true, server);
@@ -186,6 +234,11 @@ public class GameManager {
         server.setPvpEnabled(enabled);
     }
 
+    /**
+     * Sets the game mode for all online players.
+     * @param server The Minecraft server instance.
+     * @param mode The GameMode to set.
+     */
     private static void setAllPlayersGameMode(MinecraftServer server, GameMode mode) {
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
             if (player.interactionManager.getGameMode() != mode) {
@@ -194,6 +247,13 @@ public class GameManager {
         }
     }
 
+    /**
+     * Finds a random, clear spawn position near the island's defined spawn point.
+     * Attempts multiple random locations before falling back to the exact spawn point.
+     * @param island The island to spawn on.
+     * @param world The server world.
+     * @return A suitable BlockPos for spawning.
+     */
     private static BlockPos getRandomSpawnPosition(Island island, ServerWorld world) {
         // Try up to 10 random positions within 10-block radius
         for (int i = 0; i < 10; i++) {
@@ -210,6 +270,16 @@ public class GameManager {
         return new BlockPos(island.spawnX + 1, island.spawnY, island.spawnZ + 1);
     }
 
+    /**
+     * Checks if a cylindrical area around a center point is clear for spawning.
+     * Verifies that the ground block is solid and the space above is air.
+     * @param world The server world.
+     * @param cx Center X coordinate.
+     * @param cy Center Y coordinate (spawn height).
+     * @param cz Center Z coordinate.
+     * @param radius The radius of the area to check.
+     * @return True if the area is clear, false otherwise.
+     */
     private static boolean isAreaClear(ServerWorld world, int cx, int cy, int cz, int radius) {
         int r2 = radius * radius;
         for (int dx = -radius; dx <= radius; dx++) {
@@ -227,6 +297,11 @@ public class GameManager {
         return true;
     }
 
+    /**
+     * Teleports all players belonging to teams to their assigned island's spawn point.
+     * Uses the custom spawn point if defined, otherwise logs an error.
+     * @param server The Minecraft server instance.
+     */
     private static void teleportPlayersToIslands(MinecraftServer server) {
         StormboundIslesMod.LOGGER.info("Teleporting players to their islands");
         for (Team team : DataManager.teams.values()) {
@@ -261,6 +336,11 @@ public class GameManager {
         }
     }
 
+    /**
+     * Handles per-tick game logic, including countdowns and phase transitions.
+     * Updates the phase timer BossBar and persists game state periodically.
+     * @param server The Minecraft server instance.
+     */
     private static void onServerTick(MinecraftServer server) {
         // Handle pre-game countdown
         if (isStarting) {
@@ -322,6 +402,11 @@ public class GameManager {
         }
     }
     
+    /**
+     * Formats a duration given in minutes into a human-readable string (e.g., "1h 30m", "2d 5h 10m").
+     * @param minutes The total number of minutes.
+     * @return A formatted string representing the duration.
+     */
     private static String formatTime(int minutes) {
         if (minutes < 60) {
             return minutes + " min";

@@ -5,7 +5,10 @@ import net.minecraft.util.math.BlockPos;
 /**
  * Represents an axis-aligned bounding box defined by two corner points.
  * Implements the {@link Zone} interface.
+ *
+ * @deprecated Will be removed soon. Use {@link PolygonZone} instead.
  */
+@Deprecated
 public class BoundingBox implements Zone {
 	/** The minimum corner point of the bounding box. */
 	public BlockPos min;

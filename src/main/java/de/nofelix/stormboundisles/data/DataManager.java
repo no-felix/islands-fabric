@@ -1,6 +1,7 @@
 package de.nofelix.stormboundisles.data;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import de.nofelix.stormboundisles.StormboundIslesMod;
 import de.nofelix.stormboundisles.game.GameManager;
@@ -14,25 +15,28 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Manages loading and saving game data like teams, islands, and game state to files.
+ * Manages loading and saving persistent game data, including team information,
+ * island definitions, and the current game state (phase and progress).
+ * Data is stored in JSON files within the world save directory (`world/stormboundisles`).
  */
 public class DataManager {
-	/** Gson instance for JSON serialization/deserialization. */
-	private static final Gson GSON = new Gson();
-	/** Type token for deserializing the map of teams. */
+	/** Gson instance for JSON serialization/deserialization with pretty printing. */
+	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+	/** Type token for deserializing the map of teams (String teamName -> Team object). */
 	private static final Type TEAM_MAP_TYPE = new TypeToken<Map<String, Team>>() {
 	}.getType();
-	/** Type token for deserializing the map of islands. */
+	/** Type token for deserializing the map of islands (String islandId -> Island object). */
 	private static final Type ISLAND_MAP_TYPE = new TypeToken<Map<String, Island>>() {
 	}.getType();
-	/** In-memory map storing team data, keyed by team name. */
+	/** In-memory map storing team data, keyed by team name. Loaded from `teams.json`. */
 	public static Map<String, Team> teams = new HashMap<>();
-	/** In-memory map storing island data, keyed by island ID. */
+	/** In-memory map storing island data, keyed by island ID. Loaded from `islands.json`. */
 	public static Map<String, Island> islands = new HashMap<>();
 
 	/**
-	 * Loads all game data (teams, islands, game state) from their respective files.
-	 * If files don't exist, initializes with empty data structures.
+	 * Loads all game data (teams, islands, game state) from their respective JSON files
+	 * located in the `world/stormboundisles` directory.
+	 * If files don't exist or fail to load, initializes with empty data structures or defaults.
 	 */
 	public static void loadAll() {
 		StormboundIslesMod.LOGGER.info("Loading game data");
@@ -61,17 +65,18 @@ public class DataManager {
 	}
 
 	/**
-	 * Internal class to represent the saved game state.
+	 * Internal class representing the structure of the saved game state file (`game_state.json`).
 	 */
 	private static class GameState {
-		/** The name of the current game phase. */
+		/** The name of the current game phase (e.g., "BUILD", "PVP"). */
 		public String phase;
 		/** The number of ticks elapsed in the current game phase. */
 		public int phaseTicks;
 	}
 
 	/**
-	 * Saves the current game state (phase and phase ticks) to a JSON file.
+	 * Saves the current game state (phase and phase ticks) to `game_state.json`.
+	 * Retrieves the current state from {@link GameManager}.
 	 */
 	public static void saveGameState() {
 		try {
@@ -89,8 +94,9 @@ public class DataManager {
 	}
 
 	/**
-	 * Loads the game state (phase and phase ticks) from its JSON file.
-	 * If the file exists and contains valid data, updates the {@link GameManager}.
+	 * Loads the game state (phase and phase ticks) from `game_state.json`.
+	 * If the file exists and contains valid data, updates the {@link GameManager}
+	 * using {@link GameManager#setPhaseWithoutReset(GamePhase, int)}.
 	 */
 	private static void loadGameState() {
 		try {
@@ -108,7 +114,8 @@ public class DataManager {
 	}
 
 	/**
-	 * Saves all current game data (teams and islands) to their respective JSON files.
+	 * Saves all current in-memory game data (teams and islands) to their respective
+	 * JSON files (`teams.json`, `islands.json`).
 	 */
 	public static void saveAll() {
 		StormboundIslesMod.LOGGER.info("Saving game data: {} teams, {} islands", teams.size(), islands.size());
@@ -127,11 +134,11 @@ public class DataManager {
 	}
 
 	/**
-	 * Gets a file handle within the mod's data directory inside the world save.
+	 * Gets a {@link File} handle within the mod's data directory (`world/stormboundisles`).
 	 * Creates the directory if it doesn't exist.
 	 *
-	 * @param name The name of the file.
-	 * @return A File object representing the requested file.
+	 * @param name The name of the file (e.g., "teams.json").
+	 * @return A File object representing the requested file path.
 	 */
 	private static File getFile(String name) {
 		File dir = new File("world/stormboundisles");

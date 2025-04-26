@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
  * Provides utility methods for debugging and visualizing game elements.
  */
 public class DebugManager {
+	/** Stores the BlockPos list for visualized borders per player UUID. */
 	private static final Map<UUID, List<BlockPos>> borderBlocks = new HashMap<>();
 
 	/**

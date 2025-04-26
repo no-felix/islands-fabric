@@ -148,22 +148,22 @@ public class ScoreboardManager {
 			String teamName = entry.getKey();
 			Team team = entry.getValue();
 
-			// Team abrufen oder erstellen
+			// Get or create the scoreboard team
 			net.minecraft.scoreboard.Team sbTeam = scoreboard.getTeam(teamName);
 			if (sbTeam == null) {
 				sbTeam = scoreboard.addTeam(teamName);
 			}
 
-			// Anzeigeeinstellungen festlegen
+			// Set display settings
 			sbTeam.setDisplayName(Text.literal(teamName));
 			sbTeam.setPrefix(Text.literal(getDisplayNameForTeam(team) + " §r"));
 
-			// Alte Mitglieder entfernen
+			// Remove old members
 			for (String memberName : sbTeam.getPlayerList()) {
 				scoreboard.removeScoreHolderFromTeam(memberName, sbTeam);
 			}
 
-			// Aktuelle Mitglieder hinzufügen
+			// Add current members
 			for (UUID uuid : team.members) {
 				ServerPlayerEntity player = server.getPlayerManager().getPlayer(uuid);
 				if (player != null) {
