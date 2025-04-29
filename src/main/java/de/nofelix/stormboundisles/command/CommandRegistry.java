@@ -257,7 +257,7 @@ public class CommandRegistry {
 														PolygonBuilder pb = polygonBuilders.get(uid);
 														if (isl == null || pb == null || !pb.islandId.equals(id)) {
 															ctx.getSource().sendError(Text.literal(
-																	isl == null ? "Island does not exist." : "First corner not set with /sbi island zone1."));
+																	isl == null ? "Island does not exist." : "First corner not set. Use /sbi island zone1 to set it."));
 															return 0;
 														}
 														
