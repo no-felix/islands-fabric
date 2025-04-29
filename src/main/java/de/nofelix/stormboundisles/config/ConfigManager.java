@@ -74,12 +74,10 @@ public final class ConfigManager {
 
 	/**
 	 * Gets the configured interval (in ticks) between applying island buffs.
-	 * Note: The config value is in seconds, but this method returns ticks.
 	 * @return The buff update interval in ticks.
 	 */
 	public static int getBuffUpdateInterval() {
-		// Convert seconds from config to ticks
-		return config.buffUpdateInterval * 20;
+		return config.buffUpdateInterval;
 	}
 
 	/**
@@ -97,7 +95,7 @@ public final class ConfigManager {
 	private static class Config {
 		/** Interval in ticks for checking if players are outside their island boundaries. Default: 10 ticks. */
 		int boundaryCheckInterval = 10;
-		/** Interval in seconds for applying island-specific buffs. Default: 60 seconds. */
+		/** Interval in ticks for applying island-specific buffs. Default: 60 ticks (3 seconds). */
 		int buffUpdateInterval = 60;
 		/** Interval in ticks for attempting to trigger a random disaster. Default: 6000 ticks (5 minutes). */
 		int disasterIntervalTicks = 20 * 60 * 5;
