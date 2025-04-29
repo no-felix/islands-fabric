@@ -265,14 +265,8 @@ public class CommandRegistry {
 														BlockPos firstPos = pb.points.get(0);
 														BlockPos secondPos = player.getBlockPos();
 														
-														// Create a rectangular polygon from the two corners
-														pb.points.clear(); // Clear the first point
-														pb.points.add(firstPos); // Top-left
-														pb.points.add(new BlockPos(secondPos.getX(), firstPos.getY(), firstPos.getZ())); // Top-right
-														pb.points.add(secondPos); // Bottom-right
-														pb.points.add(new BlockPos(firstPos.getX(), firstPos.getY(), secondPos.getZ())); // Bottom-left
-														
-														isl.zone = new PolygonZone(pb.points);
+														// Use the new createRectangle method which handles coordinate ordering properly
+														isl.zone = PolygonZone.createRectangle(firstPos, secondPos);
 														polygonBuilders.remove(uid);
 														DataManager.saveAll();
 														ctx.getSource().sendFeedback(() ->

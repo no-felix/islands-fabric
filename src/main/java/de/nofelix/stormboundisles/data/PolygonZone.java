@@ -2,6 +2,7 @@ package de.nofelix.stormboundisles.data;
 
 import net.minecraft.util.math.BlockPos;
 import java.util.List;
+import java.util.ArrayList;
 
 /**
  * Represents a polygonal zone defined by a list of BlockPos points.
@@ -37,6 +38,33 @@ public class PolygonZone implements Zone {
         this.maxY = max;
     }
 
+    /**
+     * Creates a rectangular zone from two corner points.
+     * Computes the minimum and maximum X and Z coordinates to create a properly oriented rectangle
+     * regardless of which corners are provided.
+     *
+     * @param corner1 The first corner position
+     * @param corner2 The second corner position
+     * @return A new PolygonZone representing the rectangle
+     */
+    public static PolygonZone createRectangle(BlockPos corner1, BlockPos corner2) {
+        // Compute min and max coordinates
+        int minX = Math.min(corner1.getX(), corner2.getX());
+        int maxX = Math.max(corner1.getX(), corner2.getX());
+        int minZ = Math.min(corner1.getZ(), corner2.getZ());
+        int maxZ = Math.max(corner1.getZ(), corner2.getZ());
+        int y = corner1.getY(); // Use the Y value from the first corner for all points
+        
+        // Create corner points in clockwise order
+        List<BlockPos> rectanglePoints = new ArrayList<>(4);
+        rectanglePoints.add(new BlockPos(minX, y, minZ)); // Top-left
+        rectanglePoints.add(new BlockPos(maxX, y, minZ)); // Top-right
+        rectanglePoints.add(new BlockPos(maxX, y, maxZ)); // Bottom-right
+        rectanglePoints.add(new BlockPos(minX, y, maxZ)); // Bottom-left
+        
+        return new PolygonZone(rectanglePoints);
+    }
+    
     /**
      * Gets the list of vertices defining this polygon.
      *
