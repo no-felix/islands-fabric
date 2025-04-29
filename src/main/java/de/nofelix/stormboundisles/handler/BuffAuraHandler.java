@@ -54,24 +54,24 @@ public class BuffAuraHandler {
 		}
 
 		for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
-			Optional<Team> optionalTeam = DataManager.teams.values().stream()
-					.filter(t -> t.members.contains(player.getUuid()))
+			Optional<Team> optionalTeam = DataManager.getTeams().values().stream()
+					.filter(t -> t.getMembers().contains(player.getUuid()))
 					.findFirst();
-			if (optionalTeam.isEmpty() || optionalTeam.get().islandId == null) {
+			if (optionalTeam.isEmpty() || optionalTeam.get().getIslandId() == null) {
 				continue;
 			}
 
-			Island island = DataManager.islands.get(optionalTeam.get().islandId);
-			if (island == null || island.zone == null) {
+			Island island = DataManager.getIsland(optionalTeam.get().getIslandId());
+			if (island == null || island.getZone() == null) {
 				continue;
 			}
 
 			BlockPos pos = player.getBlockPos();
-			if (island.zone.containsHorizontal(pos)) {
+			if (island.getZone().containsHorizontal(pos)) {
 				if (shouldLog) {
-					StormboundIslesMod.LOGGER.debug("Applying {} buff to {}", island.type, player.getName().getString());
+					StormboundIslesMod.LOGGER.debug("Applying {} buff to {}", island.getType(), player.getName().getString());
 				}
-				applyBuff(player, island.type);
+				applyBuff(player, island.getType());
 			}
 		}
 	}

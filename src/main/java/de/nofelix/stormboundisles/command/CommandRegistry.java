@@ -6,7 +6,6 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import de.nofelix.stormboundisles.data.*;
 import de.nofelix.stormboundisles.disaster.DisasterManager;
 import de.nofelix.stormboundisles.disaster.DisasterType;
-import de.nofelix.stormboundisles.game.DebugManager;
 import de.nofelix.stormboundisles.game.GameManager;
 import de.nofelix.stormboundisles.game.GamePhase;
 import de.nofelix.stormboundisles.game.ScoreboardManager;
@@ -22,20 +21,20 @@ import java.util.*;
 import java.util.stream.Stream;
 
 /**
- * Registers all `/sbi` commands (island, team, points, admin, debug, start, stop).
+ * Registers all `/sbi` commands (island, team, points, admin, start, stop).
  */
 public class CommandRegistry {
 	/**
 	 * Suggests existing island IDs.
 	 */
 	private static final SuggestionProvider<ServerCommandSource> ISLAND_ID_SUGGESTIONS = (ctx, builder) ->
-			CommandSource.suggestMatching(DataManager.islands.keySet(), builder);
+			CommandSource.suggestMatching(DataManager.getIslands().keySet(), builder);
 
 	/**
 	 * Suggests existing team names.
 	 */
 	private static final SuggestionProvider<ServerCommandSource> TEAM_NAME_SUGGESTIONS = (ctx, builder) ->
-			CommandSource.suggestMatching(DataManager.teams.keySet(), builder);
+			CommandSource.suggestMatching(DataManager.getTeams().keySet(), builder);
 
 	/**
 	 * Suggests available disaster types.
@@ -43,11 +42,6 @@ public class CommandRegistry {
 	private static final SuggestionProvider<ServerCommandSource> DISASTER_TYPE_SUGGESTIONS = (ctx, builder) ->
 			CommandSource.suggestMatching(
 					Stream.of(DisasterType.values()).map(Enum::name).toList(), builder);
-
-	/**
-	 * First corner storage per player for bounding‑box zone definition.
-	 */
-	private static final Map<UUID, BlockPos> zoneCorner1 = new HashMap<>();
 
 	/**
 	 * Helper for building polygon zones point by point.
@@ -66,14 +60,21 @@ public class CommandRegistry {
 		// Ensure all islands and teams exist and are linked
 		for (IslandType type : IslandType.values()) {
 			String id = type.name().toLowerCase();
-			DataManager.islands.computeIfAbsent(id, k -> new Island(k, type));
+			Island island = DataManager.getIsland(id);
+			if (island == null) {
+				island = new Island(id, type);
+				DataManager.putIsland(island);
+			}
+			
 			String teamName = type.name();
-			DataManager.teams.computeIfAbsent(teamName, Team::new);
+			Team team = DataManager.getTeam(teamName);
+			if (team == null) {
+				team = new Team(teamName);
+				DataManager.putTeam(team);
+			}
 
-			Island island = DataManager.islands.get(id);
-			Team team = DataManager.teams.get(teamName);
-			if (island.teamName == null) island.teamName = teamName;
-			if (team.islandId == null) team.islandId = id;
+			if (island.getTeamName() == null) island.setTeamName(teamName);
+			if (team.getIslandId() == null) team.setIslandId(id);
 		}
 		DataManager.saveAll();
 
@@ -105,31 +106,13 @@ public class CommandRegistry {
 									)
 									.then(CommandManager.literal("reset")
 											.executes(ctx -> {
-												DataManager.islands.clear();
-												DataManager.teams.clear();
+												DataManager.clearIslands();
+												DataManager.clearTeams();
 												DataManager.saveAll();
 												ctx.getSource().sendFeedback(() ->
 														Text.literal("Game data reset."), false);
 												return 1;
 											})
-									)
-							)
-
-							// debug
-							.then(CommandManager.literal("debug")
-									.then(CommandManager.literal("visualiseBorders")
-											.then(CommandManager.argument("state", StringArgumentType.word())
-													.suggests((ctx, b) -> CommandSource.suggestMatching(
-															List.of("on", "off"), b))
-													.executes(ctx -> {
-														ServerPlayerEntity player = ctx.getSource().getPlayer();
-														boolean on = "on".equalsIgnoreCase(StringArgumentType.getString(ctx, "state"));
-														DebugManager.toggleVisualizeBorders(player, on);
-														ctx.getSource().sendFeedback(() ->
-																Text.literal("Border visualization " + (on ? "enabled" : "disabled")), false);
-														return 1;
-													})
-											)
 									)
 							)
 
@@ -160,17 +143,16 @@ public class CommandRegistry {
 									.then(CommandManager.literal("list")
 											.executes(ctx -> {
 												StringBuilder sb = new StringBuilder("Islands:\n");
-												for (Island isl : DataManager.islands.values()) {
-													String zoneInfo = switch (isl.zone) {
+												for (Island isl : DataManager.getIslands().values()) {
+													String zoneInfo = switch (isl.getZone()) {
 														case null -> "Not set";
-														case BoundingBox bb -> bb.min + " to " + bb.max;
 														case PolygonZone pz ->
-																"Polygon (" + pz.points.size() + " points)";
+																"Polygon (" + pz.getPoints().size() + " points)";
 														default -> "Unknown";
 													};
-													sb.append(isl.id)
-															.append(" (").append(isl.type).append(")")
-															.append(" | Team: ").append(isl.teamName)
+													sb.append(isl.getId())
+															.append(" (").append(isl.getType()).append(")")
+															.append(" | Team: ").append(isl.getTeamName())
 															.append(" | Zone: ").append(zoneInfo)
 															.append("\n");
 												}
@@ -217,12 +199,12 @@ public class CommandRegistry {
 															ctx.getSource().sendError(Text.literal("At least 3 points are required."));
 															return 0;
 														}
-														Island isl = DataManager.islands.get(pb.islandId);
+														Island isl = DataManager.getIsland(pb.islandId);
 														if (isl == null) {
 															ctx.getSource().sendError(Text.literal("Island does not exist."));
 															return 0;
 														}
-														isl.zone = new PolygonZone(pb.points);
+														isl.setZone(new PolygonZone(pb.points));
 														DataManager.saveAll();
 														ctx.getSource().sendFeedback(() ->
 																Text.literal("Polygon zone set for island " + pb.islandId), false);
@@ -235,18 +217,16 @@ public class CommandRegistry {
 													.suggests(ISLAND_ID_SUGGESTIONS)
 													.executes(ctx -> {
 														ServerPlayerEntity player = ctx.getSource().getPlayer();
-														Island isl = DataManager.islands.get(StringArgumentType.getString(ctx, "islandId"));
+														Island isl = DataManager.getIsland(StringArgumentType.getString(ctx, "islandId"));
 														if (isl == null) {
 															ctx.getSource().sendError(Text.literal("Island does not exist."));
 															return 0;
 														}
 														BlockPos pos = player.getBlockPos();
-														isl.spawnX = pos.getX();
-														isl.spawnY = pos.getY();
-														isl.spawnZ = pos.getZ();
+														isl.setSpawnPoint(pos.getX(), pos.getY(), pos.getZ());
 														DataManager.saveAll();
 														ctx.getSource().sendFeedback(() ->
-																Text.literal("Spawn for island " + isl.id + " set to " + pos), false);
+																Text.literal("Spawn for island " + isl.getId() + " set to " + pos), false);
 														return 1;
 													})
 											)
@@ -255,10 +235,17 @@ public class CommandRegistry {
 											.then(CommandManager.argument("islandId", StringArgumentType.word())
 													.suggests(ISLAND_ID_SUGGESTIONS)
 													.executes(ctx -> {
-														ServerPlayerEntity pl = ctx.getSource().getPlayer();
-														zoneCorner1.put(pl.getUuid(), pl.getBlockPos());
+														ServerPlayerEntity player = ctx.getSource().getPlayer();
+														UUID uid = player.getUuid();
+														
+														// Start a polygon builder instead of using zone corners
+														PolygonBuilder pb = new PolygonBuilder();
+														pb.islandId = StringArgumentType.getString(ctx, "islandId");
+														pb.points.add(player.getBlockPos()); // Add first corner
+														polygonBuilders.put(uid, pb);
+														
 														ctx.getSource().sendFeedback(() ->
-																Text.literal("First corner set at your position."), false);
+																Text.literal("First corner set at your position. Use /sbi island zone2 to add the second corner."), false);
 														return 1;
 													})
 											)
@@ -267,19 +254,28 @@ public class CommandRegistry {
 											.then(CommandManager.argument("islandId", StringArgumentType.word())
 													.suggests(ISLAND_ID_SUGGESTIONS)
 													.executes(ctx -> {
-														ServerPlayerEntity pl = ctx.getSource().getPlayer();
+														ServerPlayerEntity player = ctx.getSource().getPlayer();
 														String id = StringArgumentType.getString(ctx, "islandId");
-														Island isl = DataManager.islands.get(id);
-														BlockPos first = zoneCorner1.remove(pl.getUuid());
-														if (isl == null || first == null) {
+														Island isl = DataManager.getIsland(id);
+														UUID uid = player.getUuid();
+														
+														PolygonBuilder pb = polygonBuilders.get(uid);
+														if (isl == null || pb == null || !pb.islandId.equals(id)) {
 															ctx.getSource().sendError(Text.literal(
-																	isl == null ? "Island does not exist." : "First corner not set."));
+																	isl == null ? "Island does not exist." : "First corner not set. Use /sbi island zone1 to set it."));
 															return 0;
 														}
-														isl.zone = new BoundingBox(first, pl.getBlockPos());
+														
+														// Add remaining points to form a rectangle
+														BlockPos firstPos = pb.points.get(0);
+														BlockPos secondPos = player.getBlockPos();
+														
+														// Use the new createRectangle method which handles coordinate ordering properly
+														isl.setZone(PolygonZone.createRectangle(firstPos, secondPos));
+														polygonBuilders.remove(uid);
 														DataManager.saveAll();
 														ctx.getSource().sendFeedback(() ->
-																Text.literal("Zone for island " + id + " set."), false);
+																Text.literal("Rectangular zone for island " + id + " set."), false);
 														return 1;
 													})
 											)
@@ -294,34 +290,34 @@ public class CommandRegistry {
 													.then(CommandManager.argument("amount", IntegerArgumentType.integer())
 															.then(CommandManager.argument("reason", StringArgumentType.greedyString())
 																	.executes(ctx -> {
-																		Team t = DataManager.teams.get(StringArgumentType.getString(ctx, "team"));
+																		Team t = DataManager.getTeam(StringArgumentType.getString(ctx, "team"));
 																		if (t == null) {
 																			ctx.getSource().sendError(Text.literal("Team does not exist."));
 																			return 0;
 																		}
 																		int amt = IntegerArgumentType.getInteger(ctx, "amount");
-																		t.points += amt;
+																		t.addPoints(amt);
 																		DataManager.saveAll();
-																		ScoreboardManager.updateTeamScore(t.name);
+																		ScoreboardManager.updateTeamScore(t.getName());
 																		ctx.getSource().sendFeedback(() ->
-																						Text.literal("Added " + amt + " points to " + t.name +
+																						Text.literal("Added " + amt + " points to " + t.getName() +
 																								" (" + StringArgumentType.getString(ctx, "reason") + ")"),
 																				false);
 																		return 1;
 																	})
 															)
 															.executes(ctx -> {
-																Team t = DataManager.teams.get(StringArgumentType.getString(ctx, "team"));
+																Team t = DataManager.getTeam(StringArgumentType.getString(ctx, "team"));
 																if (t == null) {
 																	ctx.getSource().sendError(Text.literal("Team does not exist."));
 																	return 0;
 																}
 																int amt = IntegerArgumentType.getInteger(ctx, "amount");
-																t.points += amt;
+																t.addPoints(amt);
 																DataManager.saveAll();
-																ScoreboardManager.updateTeamScore(t.name);
+																ScoreboardManager.updateTeamScore(t.getName());
 																ctx.getSource().sendFeedback(() ->
-																		Text.literal("Added " + amt + " points to " + t.name), false);
+																		Text.literal("Added " + amt + " points to " + t.getName()), false);
 																return 1;
 															})
 													)
@@ -333,34 +329,34 @@ public class CommandRegistry {
 													.then(CommandManager.argument("amount", IntegerArgumentType.integer())
 															.then(CommandManager.argument("reason", StringArgumentType.greedyString())
 																	.executes(ctx -> {
-																		Team t = DataManager.teams.get(StringArgumentType.getString(ctx, "team"));
+																		Team t = DataManager.getTeam(StringArgumentType.getString(ctx, "team"));
 																		if (t == null) {
 																			ctx.getSource().sendError(Text.literal("Team does not exist."));
 																			return 0;
 																		}
 																		int amt = IntegerArgumentType.getInteger(ctx, "amount");
-																		t.points -= amt;
+																		t.addPoints(-amt); // Use addPoints with negative value
 																		DataManager.saveAll();
-																		ScoreboardManager.updateTeamScore(t.name);
+																		ScoreboardManager.updateTeamScore(t.getName());
 																		ctx.getSource().sendFeedback(() ->
-																						Text.literal("Removed " + amt + " points from " + t.name +
+																						Text.literal("Removed " + amt + " points from " + t.getName() +
 																								" (" + StringArgumentType.getString(ctx, "reason") + ")"),
 																				false);
 																		return 1;
 																	})
 															)
 															.executes(ctx -> {
-																Team t = DataManager.teams.get(StringArgumentType.getString(ctx, "team"));
+																Team t = DataManager.getTeam(StringArgumentType.getString(ctx, "team"));
 																if (t == null) {
 																	ctx.getSource().sendError(Text.literal("Team does not exist."));
 																	return 0;
 																}
 																int amt = IntegerArgumentType.getInteger(ctx, "amount");
-																t.points -= amt;
+																t.addPoints(-amt); // Use addPoints with negative value
 																DataManager.saveAll();
-																ScoreboardManager.updateTeamScore(t.name);
+																ScoreboardManager.updateTeamScore(t.getName());
 																ctx.getSource().sendFeedback(() ->
-																		Text.literal("Removed " + amt + " points from " + t.name), false);
+																		Text.literal("Removed " + amt + " points from " + t.getName()), false);
 																return 1;
 															})
 													)
@@ -399,7 +395,7 @@ public class CommandRegistry {
 																			.stream().map(p -> p.getName().getString()).toList(), b))
 															.executes(ctx -> {
 																String teamName = StringArgumentType.getString(ctx, "teamName");
-																Team team = DataManager.teams.get(teamName);
+																Team team = DataManager.getTeam(teamName);
 																if (team == null) {
 																	ctx.getSource().sendError(Text.literal("Team does not exist."));
 																	return 0;
@@ -410,8 +406,14 @@ public class CommandRegistry {
 																	ctx.getSource().sendError(Text.literal("Player not found."));
 																	return 0;
 																}
-																DataManager.teams.values().forEach(t -> t.members.remove(target.getUuid()));
-																team.members.add(target.getUuid());
+																
+																// Remove player from all teams
+																for (Team t : DataManager.getTeams().values()) {
+																	t.removeMember(target.getUuid());
+																}
+																
+																// Add player to specified team
+																team.addMember(target.getUuid());
 																DataManager.saveAll();
 																ScoreboardManager.updateAllTeams(ctx.getSource().getServer());
 																ctx.getSource().sendFeedback(() ->
@@ -434,7 +436,12 @@ public class CommandRegistry {
 															ctx.getSource().sendError(Text.literal("Player not found."));
 															return 0;
 														}
-														DataManager.teams.values().forEach(t -> t.members.remove(target.getUuid()));
+														
+														// Remove player from all teams
+														for (Team t : DataManager.getTeams().values()) {
+															t.removeMember(target.getUuid());
+														}
+														
 														DataManager.saveAll();
 														ScoreboardManager.updateAllTeams(ctx.getSource().getServer());
 														ctx.getSource().sendFeedback(() ->

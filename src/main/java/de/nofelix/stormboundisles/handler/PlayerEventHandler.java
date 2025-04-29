@@ -69,17 +69,17 @@ public final class PlayerEventHandler {
 	 * Warns and teleports a player back if they leave their island during BUILD.
 	 */
 	private static void enforceIslandBoundary(ServerPlayerEntity player) {
-		Optional<Team> team = DataManager.teams.values().stream()
-				.filter(t -> t.members.contains(player.getUuid()))
+		Optional<Team> team = DataManager.getTeams().values().stream()
+				.filter(t -> t.getMembers().contains(player.getUuid()))
 				.findFirst();
 
-		if (team.isEmpty() || team.get().islandId == null) return;
+		if (team.isEmpty() || team.get().getIslandId() == null) return;
 
-		Island island = DataManager.islands.get(team.get().islandId);
-		if (island == null || island.zone == null) return;
+		Island island = DataManager.getIsland(team.get().getIslandId());
+		if (island == null || island.getZone() == null) return;
 
 		BlockPos pos = player.getBlockPos();
-		if (!island.zone.containsHorizontal(pos)) {
+		if (!island.getZone().containsHorizontal(pos)) {
 			long now = System.currentTimeMillis();
 			Long last = lastBoundaryWarning.get(player.getUuid());
 			if (last == null || (now - last) > WARNING_COOLDOWN_MS) {
@@ -89,11 +89,11 @@ public final class PlayerEventHandler {
 				lastBoundaryWarning.put(player.getUuid(), now);
 			}
 
-			if (island.spawnY >= 0) {
+			if (island.getSpawnY() >= 0) {
 				ServerWorld world = player.getServerWorld();
 				player.teleport(
 						world,
-						island.spawnX + 0.5, island.spawnY, island.spawnZ + 0.5,
+						island.getSpawnX() + 0.5, island.getSpawnY(), island.getSpawnZ() + 0.5,
 						player.getYaw(), player.getPitch());
 			}
 		}
@@ -109,15 +109,15 @@ public final class PlayerEventHandler {
 		}
 
 		UUID id = player.getUuid();
-		Optional<Team> team = DataManager.teams.values().stream()
-				.filter(t -> t.members.contains(id))
+		Optional<Team> team = DataManager.getTeams().values().stream()
+				.filter(t -> t.getMembers().contains(id))
 				.findFirst();
 
 		team.ifPresent(t -> {
-			t.points -= DEATH_PENALTY;
-			ScoreboardManager.updateTeamScore(t.name);
+			t.addPoints(-DEATH_PENALTY);
+			ScoreboardManager.updateTeamScore(t.getName());
 
-			String msg = "Team " + t.name + " lost " + DEATH_PENALTY +
+			String msg = "Team " + t.getName() + " lost " + DEATH_PENALTY +
 					" points (Player death: " + player.getName().getString() + ")";
 			StormboundIslesMod.LOGGER.info(msg);
 			player.getServer()
@@ -125,11 +125,11 @@ public final class PlayerEventHandler {
 					.broadcast(Text.literal(msg), false);
 
 			DataManager.saveAll();
-			Island isl = DataManager.islands.get(t.islandId);
-			if (isl != null && isl.spawnY >= 0) {
+			Island isl = DataManager.getIsland(t.getIslandId());
+			if (isl != null && isl.hasSpawnPoint()) {
 				player.teleport(
 						player.getServerWorld(),
-						isl.spawnX + 0.5, isl.spawnY, isl.spawnZ + 0.5,
+						isl.getSpawnX() + 0.5, isl.getSpawnY(), isl.getSpawnZ() + 0.5,
 						player.getYaw(), player.getPitch());
 			}
 		});

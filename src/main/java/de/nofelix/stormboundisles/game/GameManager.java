@@ -259,15 +259,15 @@ public class GameManager {
         for (int i = 0; i < 10; i++) {
             double angle = random.nextDouble() * 2 * Math.PI;
             double dist = random.nextDouble() * 10;
-            int x = island.spawnX + (int) Math.round(Math.cos(angle) * dist);
-            int z = island.spawnZ + (int) Math.round(Math.sin(angle) * dist);
-            int y = island.spawnY;
+            int x = island.getSpawnX() + (int) Math.round(Math.cos(angle) * dist);
+            int z = island.getSpawnZ() + (int) Math.round(Math.sin(angle) * dist);
+            int y = island.getSpawnY();
             if (isAreaClear(world, x, y, z, 10)) {
                 return new BlockPos(x + 1, y, z + 1);
             }
         }
         // Fallback to exact spawn
-        return new BlockPos(island.spawnX + 1, island.spawnY, island.spawnZ + 1);
+        return new BlockPos(island.getSpawnX() + 1, island.getSpawnY(), island.getSpawnZ() + 1);
     }
 
     /**
@@ -304,27 +304,30 @@ public class GameManager {
      */
     private static void teleportPlayersToIslands(MinecraftServer server) {
         StormboundIslesMod.LOGGER.info("Teleporting players to their islands");
-        for (Team team : DataManager.teams.values()) {
-            if (team.islandId == null) {
-                StormboundIslesMod.LOGGER.warn("Team {} has no assigned island, skipping teleport", team.name);
+        
+        for (Team team : DataManager.getTeams().values()) {
+            if (team.getIslandId() == null) {
+                StormboundIslesMod.LOGGER.warn("Team {} has no assigned island, skipping teleport", team.getName());
                 continue;
             }
-            Island island = DataManager.islands.get(team.islandId);
-            if (island == null || island.zone == null) {
-                StormboundIslesMod.LOGGER.warn("Island {} not found or has no defined zone", team.islandId);
+            
+            Island island = DataManager.getIsland(team.getIslandId());
+            if (island == null || island.getZone() == null) {
+                StormboundIslesMod.LOGGER.warn("Island {} not found or has no defined zone", team.getIslandId());
                 continue;
             }
-            for (UUID uuid : team.members) {
+            
+            for (UUID uuid : team.getMembers()) {
                 ServerPlayerEntity player = server.getPlayerManager().getPlayer(uuid);
                 if (player != null) {
                     // Determine teleport target: use custom spawn if defined, else center of zone
                     BlockPos target;
-                    if (island.spawnY >= 0) {
+                    if (island.getSpawnY() >= 0) {
                         target = getRandomSpawnPosition(island, server.getOverworld());
                     } else {
-                        StormboundIslesMod.LOGGER.error("Island {} has no defined spawn position, unable to teleport player", island.id);
+                        StormboundIslesMod.LOGGER.error("Island {} has no defined spawn position, unable to teleport player", island.getId());
                         // broadcast message to all players
-                        server.getPlayerManager().broadcast(Text.literal("Island " + island.id + " has no defined spawn position, unable to teleport " + player.getName()), false);
+                        server.getPlayerManager().broadcast(Text.literal("Island " + island.getId() + " has no defined spawn position, unable to teleport " + player.getName()), false);
                         // skip teleportation for this player
                         continue;
                     }

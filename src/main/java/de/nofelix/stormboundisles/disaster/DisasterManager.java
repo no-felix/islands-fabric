@@ -50,9 +50,9 @@ public class DisasterManager {
 	 * @param type     The type of disaster to trigger.
 	 */
 	public static void triggerDisaster(MinecraftServer server, String islandId, DisasterType type) {
-		Island island = DataManager.islands.get(islandId);
+		Island island = DataManager.getIsland(islandId);
 		// Ensure island and its zone exist
-		if (island == null || island.zone == null) return;
+		if (island == null || island.getZone() == null) return;
 
 		String disasterKey = islandId + ":" + type;
 		// Prevent duplicate active disasters of the same type on the same island
@@ -64,7 +64,7 @@ public class DisasterManager {
 
 		// Apply effects and action bar notifications to players on the island
 		for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
-			if (island.zone.contains(player.getBlockPos())) {
+			if (island.getZone().contains(player.getBlockPos())) {
 				ActionbarNotifier.send(player, "§cDisaster: " + type.name() + "!");
 				applyDisasterEffect(player, type, server);
 			}
@@ -129,18 +129,18 @@ public class DisasterManager {
 		ticks = 0;
 
 		// Select a random island
-		List<Island> islands = new ArrayList<>(DataManager.islands.values());
+		List<Island> islands = new ArrayList<>(DataManager.getIslands().values());
 		if (islands.isEmpty()) return;
 		Island island = islands.get(new Random().nextInt(islands.size()));
 
 		// Determine possible disasters for the island type
-		DisasterType[] possibleDisasters = DEFAULTS.getOrDefault(island.type, new DisasterType[0]);
+		DisasterType[] possibleDisasters = DEFAULTS.getOrDefault(island.getType(), new DisasterType[0]);
 		if (possibleDisasters.length == 0) return;
 
 		// Select a random disaster from the possibilities
 		DisasterType disaster = possibleDisasters[new Random().nextInt(possibleDisasters.length)];
 
 		// Trigger the selected disaster
-		triggerDisaster(server, island.id, disaster);
+		triggerDisaster(server, island.getId(), disaster);
 	}
 }

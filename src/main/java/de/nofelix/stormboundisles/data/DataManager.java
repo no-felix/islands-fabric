@@ -6,11 +6,14 @@ import com.google.gson.reflect.TypeToken;
 import de.nofelix.stormboundisles.StormboundIslesMod;
 import de.nofelix.stormboundisles.game.GameManager;
 import de.nofelix.stormboundisles.game.GamePhase;
+import net.fabricmc.loader.api.FabricLoader;
+import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.IOException;
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,123 +32,251 @@ public class DataManager {
 	private static final Type ISLAND_MAP_TYPE = new TypeToken<Map<String, Island>>() {
 	}.getType();
 	/** In-memory map storing team data, keyed by team name. Loaded from `teams.json`. */
-	public static Map<String, Team> teams = new HashMap<>();
+	private static Map<String, Team> teams = new HashMap<>();
 	/** In-memory map storing island data, keyed by island ID. Loaded from `islands.json`. */
-	public static Map<String, Island> islands = new HashMap<>();
+	private static Map<String, Island> islands = new HashMap<>();
 
 	/**
-	 * Loads all game data (teams, islands, game state) from their respective JSON files
-	 * located in the `world/stormboundisles` directory.
-	 * If files don't exist or fail to load, initializes with empty data structures or defaults.
+	 * Returns an unmodifiable view of the teams map.
+	 * 
+	 * @return An unmodifiable map of teams
+	 */
+	public static Map<String, Team> getTeams() {
+		return Map.copyOf(teams);
+	}
+
+	/**
+	 * Returns an unmodifiable view of the islands map.
+	 * 
+	 * @return An unmodifiable map of islands
+	 */
+	public static Map<String, Island> getIslands() {
+		return Map.copyOf(islands);
+	}
+
+	/**
+	 * Gets a team by its name.
+	 * 
+	 * @param teamName The name of the team to retrieve
+	 * @return The team object, or null if no team exists with the given name
+	 */
+	public static Team getTeam(String teamName) {
+		return teams.get(teamName);
+	}
+
+	/**
+	 * Gets an island by its ID.
+	 * 
+	 * @param islandId The ID of the island to retrieve
+	 * @return The island object, or null if no island exists with the given ID
+	 */
+	public static Island getIsland(String islandId) {
+		return islands.get(islandId);
+	}
+
+	/**
+	 * Adds or updates a team in the teams collection.
+	 * 
+	 * @param team The team to add or update
+	 */
+	public static void putTeam(Team team) {
+		if (team == null || team.getName() == null) {
+			throw new IllegalArgumentException("Cannot add a null team or team with null name");
+		}
+		teams.put(team.getName(), team);
+	}
+
+	/**
+	 * Adds or updates an island in the islands collection.
+	 * 
+	 * @param island The island to add or update
+	 */
+	public static void putIsland(Island island) {
+		if (island == null || island.getId() == null) {
+			throw new IllegalArgumentException("Cannot add a null island or island with null id");
+		}
+		islands.put(island.getId(), island);
+	}
+
+	/**
+	 * Clears all teams from the teams collection.
+	 */
+	public static void clearTeams() {
+		teams.clear();
+	}
+
+	/**
+	 * Clears all islands from the islands collection.
+	 */
+	public static void clearIslands() {
+		islands.clear();
+	}
+
+	/**
+	 * Loads all data from the default directory.
+	 * Convenience method that uses the game directory from FabricLoader.
 	 */
 	public static void loadAll() {
-		StormboundIslesMod.LOGGER.info("Loading game data");
-		try {
-			File teamFile = getFile("teams.json");
-			File islandFile = getFile("islands.json");
-			if (teamFile.exists()) {
-				teams = GSON.fromJson(new FileReader(teamFile), TEAM_MAP_TYPE);
-				StormboundIslesMod.LOGGER.info("Loaded {} teams", teams.size());
-			} else {
-				StormboundIslesMod.LOGGER.info("No teams file exists, creating empty teams data");
-			}
-			if (islandFile.exists()) {
-				islands = GSON.fromJson(new FileReader(islandFile), ISLAND_MAP_TYPE);
-				StormboundIslesMod.LOGGER.info("Loaded {} islands", islands.size());
-			} else {
-				StormboundIslesMod.LOGGER.info("No islands file exists, creating empty islands data");
-			}
-		} catch (Exception e) {
-			StormboundIslesMod.LOGGER.error("Failed to load data", e);
-		}
-		if (teams == null) teams = new HashMap<>();
-		if (islands == null) islands = new HashMap<>();
-		// Load saved game phase and tick count
-		loadGameState();
+		Path runDir = FabricLoader.getInstance().getGameDir();
+		load(runDir);
 	}
 
 	/**
-	 * Internal class representing the structure of the saved game state file (`game_state.json`).
+	 * Loads all data from the appropriate JSON files.
+	 * If files don't exist or are invalid, initializes with empty collections.
+	 * 
+	 * @param runDir The directory where the game is running
 	 */
-	private static class GameState {
-		/** The name of the current game phase (e.g., "BUILD", "PVP"). */
-		public String phase;
-		/** The number of ticks elapsed in the current game phase. */
-		public int phaseTicks;
-	}
-
-	/**
-	 * Saves the current game state (phase and phase ticks) to `game_state.json`.
-	 * Retrieves the current state from {@link GameManager}.
-	 */
-	public static void saveGameState() {
+	public static void load(@NotNull Path runDir) {
+		StormboundIslesMod.LOGGER.info("Loading data from {}", runDir);
 		try {
-			File file = getFile("game_state.json");
-			FileWriter writer = new FileWriter(file);
-			GameState state = new GameState();
-			state.phase = GameManager.phase.name();
-			state.phaseTicks = GameManager.getPhaseTicks();
-			GSON.toJson(state, GameState.class, writer);
-			writer.close();
-			StormboundIslesMod.LOGGER.info("Saved game state: {} @ {} ticks", state.phase, state.phaseTicks);
-		} catch (Exception e) {
-			StormboundIslesMod.LOGGER.error("Failed to save game state", e);
-		}
-	}
-
-	/**
-	 * Loads the game state (phase and phase ticks) from `game_state.json`.
-	 * If the file exists and contains valid data, updates the {@link GameManager}
-	 * using {@link GameManager#setPhaseWithoutReset(GamePhase, int)}.
-	 */
-	private static void loadGameState() {
-		try {
-			File file = getFile("game_state.json");
-			if (file.exists()) {
-				GameState state = GSON.fromJson(new FileReader(file), GameState.class);
-				if (state != null) {
-					GameManager.setPhaseWithoutReset(GamePhase.valueOf(state.phase), state.phaseTicks);
-					StormboundIslesMod.LOGGER.info("Loaded game state: {} @ {} ticks", state.phase, state.phaseTicks);
+			Path dataDir = ensureDataDirectory(runDir);
+			
+			// Load islands first since teams reference them
+			try {
+				Path islandsPath = dataDir.resolve("islands.json");
+				if (Files.exists(islandsPath)) {
+					String islandsJson = Files.readString(islandsPath, StandardCharsets.UTF_8);
+					islands = GSON.fromJson(islandsJson, ISLAND_MAP_TYPE);
+					StormboundIslesMod.LOGGER.info("Loaded {} islands", islands.size());
 				}
+			} catch (Exception e) {
+				StormboundIslesMod.LOGGER.error("Failed to load islands", e);
+				islands = new HashMap<>();
+			}
+			
+			// Load teams
+			try {
+				Path teamsPath = dataDir.resolve("teams.json");
+				if (Files.exists(teamsPath)) {
+					String teamsJson = Files.readString(teamsPath, StandardCharsets.UTF_8);
+					teams = GSON.fromJson(teamsJson, TEAM_MAP_TYPE);
+					StormboundIslesMod.LOGGER.info("Loaded {} teams", teams.size());
+				}
+			} catch (Exception e) {
+				StormboundIslesMod.LOGGER.error("Failed to load teams", e);
+				teams = new HashMap<>();
+			}
+			
+			// Load game state
+			try {
+				Path gameStatePath = dataDir.resolve("game_state.json");
+				if (Files.exists(gameStatePath)) {
+					String gameStateJson = Files.readString(gameStatePath, StandardCharsets.UTF_8);
+					GameState gameState = GSON.fromJson(gameStateJson, GameState.class);
+					if (gameState != null) {
+						GameManager.setPhaseWithoutReset(gameState.phase, gameState.phaseTicks);
+						StormboundIslesMod.LOGGER.info("Loaded game state: {} (ticks: {})", 
+								gameState.phase, gameState.phaseTicks);
+					}
+				}
+			} catch (Exception e) {
+				StormboundIslesMod.LOGGER.error("Failed to load game state", e);
 			}
 		} catch (Exception e) {
-			StormboundIslesMod.LOGGER.error("Failed to load game state", e);
+			StormboundIslesMod.LOGGER.error("Error during data loading", e);
 		}
 	}
 
 	/**
-	 * Saves all current in-memory game data (teams and islands) to their respective
-	 * JSON files (`teams.json`, `islands.json`).
+	 * Creates and ensures the existence of the data directory for the mod.
+	 * 
+	 * @param runDir The base directory for the game
+	 * @return The path to the data directory
+	 * @throws IOException If directory creation fails
+	 */
+	private static Path ensureDataDirectory(Path runDir) throws IOException {
+		Path worldDir = runDir.resolve("world");
+		if (!Files.exists(worldDir)) {
+			worldDir = runDir;  // No world directory, use run directory directly
+		}
+		Path dataDir = worldDir.resolve("stormboundisles");
+		if (!Files.exists(dataDir)) {
+			Files.createDirectories(dataDir);
+			StormboundIslesMod.LOGGER.info("Created data directory: {}", dataDir);
+		}
+		return dataDir;
+	}
+
+	/**
+	 * Saves all data to the appropriate JSON files.
 	 */
 	public static void saveAll() {
-		StormboundIslesMod.LOGGER.info("Saving game data: {} teams, {} islands", teams.size(), islands.size());
+		Path runDir = FabricLoader.getInstance().getGameDir();
+		saveAll(runDir);
+	}
+
+	/**
+	 * Saves all data to the appropriate JSON files in the specified directory.
+	 * 
+	 * @param runDir The directory where the game is running
+	 */
+	public static void saveAll(Path runDir) {
 		try {
-			File teamFile = getFile("teams.json");
-			File islandFile = getFile("islands.json");
-			FileWriter teamWriter = new FileWriter(teamFile);
-			FileWriter islandWriter = new FileWriter(islandFile);
-			GSON.toJson(teams, TEAM_MAP_TYPE, teamWriter);
-			GSON.toJson(islands, ISLAND_MAP_TYPE, islandWriter);
-			teamWriter.close();
-			islandWriter.close();
+			Path dataDir = ensureDataDirectory(runDir);
+			
+			// Save islands
+			try {
+				Path islandsPath = dataDir.resolve("islands.json");
+				String islandsJson = GSON.toJson(islands);
+				Files.writeString(islandsPath, islandsJson, StandardCharsets.UTF_8);
+				StormboundIslesMod.LOGGER.debug("Saved {} islands", islands.size());
+			} catch (Exception e) {
+				StormboundIslesMod.LOGGER.error("Failed to save islands", e);
+			}
+			
+			// Save teams
+			try {
+				Path teamsPath = dataDir.resolve("teams.json");
+				String teamsJson = GSON.toJson(teams);
+				Files.writeString(teamsPath, teamsJson, StandardCharsets.UTF_8);
+				StormboundIslesMod.LOGGER.debug("Saved {} teams", teams.size());
+			} catch (Exception e) {
+				StormboundIslesMod.LOGGER.error("Failed to save teams", e);
+			}
+			
+			// Save game state
+			saveGameState();
 		} catch (Exception e) {
-			StormboundIslesMod.LOGGER.error("Failed to save data", e);
+			StormboundIslesMod.LOGGER.error("Error during data saving", e);
 		}
 	}
 
 	/**
-	 * Gets a {@link File} handle within the mod's data directory (`world/stormboundisles`).
-	 * Creates the directory if it doesn't exist.
-	 *
-	 * @param name The name of the file (e.g., "teams.json").
-	 * @return A File object representing the requested file path.
+	 * Saves only the game state to its JSON file.
 	 */
-	private static File getFile(String name) {
-		File dir = new File("world/stormboundisles");
-		if (!dir.exists()) {
-			StormboundIslesMod.LOGGER.info("Creating data directory: {}", dir.getPath());
-			dir.mkdirs();
+	public static void saveGameState() {
+		Path runDir = FabricLoader.getInstance().getGameDir();
+		try {
+			Path dataDir = ensureDataDirectory(runDir);
+			try {
+				Path gameStatePath = dataDir.resolve("game_state.json");
+				GameState gameState = new GameState(
+						GameManager.phase, 
+						GameManager.getPhaseTicks()
+				);
+				String gameStateJson = GSON.toJson(gameState);
+				Files.writeString(gameStatePath, gameStateJson, StandardCharsets.UTF_8);
+				StormboundIslesMod.LOGGER.debug("Saved game state: {} (ticks: {})", 
+						gameState.phase, gameState.phaseTicks);
+			} catch (Exception e) {
+				StormboundIslesMod.LOGGER.error("Failed to save game state", e);
+			}
+		} catch (Exception e) {
+			StormboundIslesMod.LOGGER.error("Error during game state saving", e);
 		}
-		return new File(dir, name);
+	}
+
+	/**
+	 * Simple DTO for serializing/deserializing game state.
+	 */
+	private static class GameState {
+		public GamePhase phase;
+		public int phaseTicks;
+
+		public GameState(GamePhase phase, int phaseTicks) {
+			this.phase = phase;
+			this.phaseTicks = phaseTicks;
+		}
 	}
 }
