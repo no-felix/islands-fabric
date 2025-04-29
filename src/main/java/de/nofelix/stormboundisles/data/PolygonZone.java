@@ -14,6 +14,10 @@ public class PolygonZone implements Zone {
     public final int minY;
     /** The maximum Y-coordinate among all vertices, defining the top of the zone. */
     public final int maxY;
+    /** Tolerance threshold for edge detection, determines how close a point must be to be considered on an edge */
+    private static final double EDGE_TOLERANCE = 0.01;
+    /** Offset to the center of a block from its corner coordinates */
+    private static final double BLOCK_CENTER_OFFSET = 0.5;
 
     /**
      * Constructs a new PolygonZone from a list of vertices.
@@ -61,28 +65,107 @@ public class PolygonZone implements Zone {
     }
 
     /**
+     * Gets the X coordinate of the center of a block.
+     * @param pos The BlockPos
+     * @return The X coordinate of the block center
+     */
+    private double centerX(BlockPos pos) {
+        return pos.getX() + BLOCK_CENTER_OFFSET;
+    }
+
+    /**
+     * Gets the Z coordinate of the center of a block.
+     * @param pos The BlockPos
+     * @return The Z coordinate of the block center
+     */
+    private double centerZ(BlockPos pos) {
+        return pos.getZ() + BLOCK_CENTER_OFFSET;
+    }
+
+    /**
      * Checks if the given position is contained within the horizontal boundaries (X and Z) of this polygon
-     * using the ray casting algorithm.
+     * using an enhanced ray casting algorithm with improved edge case handling.
      *
      * @param pos The position to check.
      * @return True if the position's X and Z coordinates are inside the polygon, false otherwise.
      */
     @Override
     public boolean containsHorizontal(BlockPos pos) {
-        double x = pos.getX();
-        double z = pos.getZ();
+        // Check if the point lies exactly on any edge of the polygon
+        if (isOnPolygonEdge(pos)) {
+            return true;
+        }
+        
+        double x = centerX(pos);
+        double z = centerZ(pos);
         boolean inside = false;
         int n = points.size();
+        
         for (int i = 0, j = n - 1; i < n; j = i++) {
-            double xi = points.get(i).getX();
-            double zi = points.get(i).getZ();
-            double xj = points.get(j).getX();
-            double zj = points.get(j).getZ();
-            boolean intersect = ((zi > z) != (zj > z)) &&
-                (x < (xj - xi) * (z - zi) / (zj - zi) + xi);
+            double xi = centerX(points.get(i));
+            double zi = centerZ(points.get(i));
+            double xj = centerX(points.get(j));
+            double zj = centerZ(points.get(j));
+            
+            // Check if ray crosses edge
+            boolean intersect = ((zi > z) != (zj > z)) && // z is between zi and zj
+                  (x < (xj - xi) * (z - zi) / (zj - zi) + xi);
+            
             if (intersect) inside = !inside;
         }
         return inside;
+    }
+    
+    /**
+     * Checks if a point lies exactly on any edge of the polygon.
+     * This helps with edge case detection for more consistent behavior.
+     *
+     * @param pos The position to check.
+     * @return True if the position lies on any edge of the polygon, false otherwise.
+     */
+    private boolean isOnPolygonEdge(BlockPos pos) {
+        double x = centerX(pos);
+        double z = centerZ(pos);
+        int n = points.size();
+        
+        for (int i = 0, j = n - 1; i < n; j = i++) {
+            double xi = centerX(points.get(i));
+            double zi = centerZ(points.get(i));
+            double xj = centerX(points.get(j));
+            double zj = centerZ(points.get(j));
+            
+            // Check if point lies on line segment using distance calculation
+            if (distanceToLineSegmentSquared(x, z, xi, zi, xj, zj) < EDGE_TOLERANCE) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Calculates the squared distance from a point to a line segment.
+     * Used for edge detection in the polygon.
+     *
+     * @param x Point x coordinate
+     * @param z Point z coordinate
+     * @param x1 Line segment start x
+     * @param z1 Line segment start z
+     * @param x2 Line segment end x
+     * @param z2 Line segment end z
+     * @return Squared distance from point to line segment
+     */
+    private double distanceToLineSegmentSquared(double x, double z, double x1, double z1, double x2, double z2) {
+        double lineLength = (x2 - x1) * (x2 - x1) + (z2 - z1) * (z2 - z1);
+        if (lineLength == 0.0) return (x - x1) * (x - x1) + (z - z1) * (z - z1);
+        
+        // Calculate projection
+        double t = ((x - x1) * (x2 - x1) + (z - z1) * (z2 - z1)) / lineLength;
+        t = Math.max(0, Math.min(1, t));
+        
+        double projectionX = x1 + t * (x2 - x1);
+        double projectionZ = z1 + t * (z2 - z1);
+        
+        return (x - projectionX) * (x - projectionX) + (z - projectionZ) * (z - projectionZ);
     }
 
     /**
