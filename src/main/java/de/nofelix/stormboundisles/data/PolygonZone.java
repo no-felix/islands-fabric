@@ -1,8 +1,9 @@
 package de.nofelix.stormboundisles.data;
 
 import net.minecraft.util.math.BlockPos;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Represents a polygonal zone defined by a list of BlockPos points.
@@ -10,11 +11,11 @@ import java.util.ArrayList;
  */
 public class PolygonZone implements Zone {
     /** The list of vertices defining the polygon in the horizontal plane (X and Z coordinates). */
-    public final List<BlockPos> points;
+    private final List<BlockPos> points;
     /** The minimum Y-coordinate among all vertices, defining the bottom of the zone. */
-    public final int minY;
+    private final int minY;
     /** The maximum Y-coordinate among all vertices, defining the top of the zone. */
-    public final int maxY;
+    private final int maxY;
     /** Tolerance threshold for edge detection, determines how close a point must be to be considered on an edge */
     private static final double EDGE_TOLERANCE = 0.01;
     /** Offset to the center of a block from its corner coordinates */
@@ -27,7 +28,11 @@ public class PolygonZone implements Zone {
      * @param points The list of BlockPos vertices defining the polygon.
      */
     public PolygonZone(List<BlockPos> points) {
-        this.points = points;
+        if (points == null || points.size() < 3) {
+            throw new IllegalArgumentException("A polygon zone requires at least 3 points");
+        }
+        this.points = new ArrayList<>(points); // Create a defensive copy
+        
         int min = Integer.MAX_VALUE;
         int max = Integer.MIN_VALUE;
         for (BlockPos p : points) {
@@ -48,6 +53,10 @@ public class PolygonZone implements Zone {
      * @return A new PolygonZone representing the rectangle
      */
     public static PolygonZone createRectangle(BlockPos corner1, BlockPos corner2) {
+        if (corner1 == null || corner2 == null) {
+            throw new IllegalArgumentException("Corner positions cannot be null");
+        }
+        
         // Compute min and max coordinates
         int minX = Math.min(corner1.getX(), corner2.getX());
         int maxX = Math.max(corner1.getX(), corner2.getX());
@@ -68,10 +77,10 @@ public class PolygonZone implements Zone {
     /**
      * Gets the list of vertices defining this polygon.
      *
-     * @return The list of BlockPos vertices.
+     * @return An unmodifiable list of BlockPos vertices.
      */
     public List<BlockPos> getPoints() {
-        return points;
+        return Collections.unmodifiableList(points);
     }
 
     /**

@@ -94,13 +94,12 @@ public class ScoreboardManager {
 			}
 		}
 
-
 		// Set scores for all teams
-		for (Map.Entry<String, Team> entry : DataManager.teams.entrySet()) {
+		for (Map.Entry<String, Team> entry : DataManager.getTeams().entrySet()) {
 			Team team = entry.getValue();
 			String displayName = getDisplayNameForTeam(team);
 			ScoreAccess score = scoreboard.getOrCreateScore(ScoreHolder.fromName(displayName), objective);
-			score.setScore(team.points);
+			score.setScore(team.getPoints());
 		}
 	}
 
@@ -112,12 +111,12 @@ public class ScoreboardManager {
 	public static void updateTeamScore(String teamName) {
 		if (scoreboard == null || objective == null) return;
 
-		Team team = DataManager.teams.get(teamName);
+		Team team = DataManager.getTeam(teamName);
 		if (team == null) return;
 
 		String displayName = getDisplayNameForTeam(team);
 		ScoreAccess score = scoreboard.getOrCreateScore(ScoreHolder.fromName(displayName), objective);
-		score.setScore(team.points);
+		score.setScore(team.getPoints());
 	}
 
 	/**
@@ -128,13 +127,13 @@ public class ScoreboardManager {
 	 */
 	private static String getDisplayNameForTeam(Team team) {
 		// Colored team names based on the name
-		return switch (team.name) {
-			case "VOLCANO" -> "§c" + team.name;
-			case "ICE" -> "§b" + team.name;
-			case "DESERT" -> "§e" + team.name;
-			case "MUSHROOM" -> "§d" + team.name;
-			case "CRYSTAL" -> "§9" + team.name;
-			default -> team.name; // Default case without color
+		return switch (team.getName()) {
+			case "VOLCANO" -> "§c" + team.getName();
+			case "ICE" -> "§b" + team.getName();
+			case "DESERT" -> "§e" + team.getName();
+			case "MUSHROOM" -> "§d" + team.getName();
+			case "CRYSTAL" -> "§9" + team.getName();
+			default -> team.getName(); // Default case without color
 		};
 	}
 
@@ -144,7 +143,7 @@ public class ScoreboardManager {
 	 * @param server The Minecraft server instance.
 	 */
 	private static void setupScoreboardTeams(MinecraftServer server) {
-		for (Map.Entry<String, Team> entry : DataManager.teams.entrySet()) {
+		for (Map.Entry<String, Team> entry : DataManager.getTeams().entrySet()) {
 			String teamName = entry.getKey();
 			Team team = entry.getValue();
 
@@ -164,7 +163,7 @@ public class ScoreboardManager {
 			}
 
 			// Add current members
-			for (UUID uuid : team.members) {
+			for (UUID uuid : team.getMembers()) {
 				ServerPlayerEntity player = server.getPlayerManager().getPlayer(uuid);
 				if (player != null) {
 					scoreboard.addScoreHolderToTeam(player.getGameProfile().getName(), sbTeam);
@@ -172,7 +171,6 @@ public class ScoreboardManager {
 			}
 		}
 	}
-
 
 	/**
 	 * Rebuilds all scoreboard team assignments on the playerlist and chat.
