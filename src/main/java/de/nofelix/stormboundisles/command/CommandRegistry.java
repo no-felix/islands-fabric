@@ -6,7 +6,6 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import de.nofelix.stormboundisles.data.*;
 import de.nofelix.stormboundisles.disaster.DisasterManager;
 import de.nofelix.stormboundisles.disaster.DisasterType;
-import de.nofelix.stormboundisles.game.DebugManager;
 import de.nofelix.stormboundisles.game.GameManager;
 import de.nofelix.stormboundisles.game.GamePhase;
 import de.nofelix.stormboundisles.game.ScoreboardManager;
@@ -22,7 +21,7 @@ import java.util.*;
 import java.util.stream.Stream;
 
 /**
- * Registers all `/sbi` commands (island, team, points, admin, debug, start, stop).
+ * Registers all `/sbi` commands (island, team, points, admin, start, stop).
  */
 public class CommandRegistry {
 	/**
@@ -43,11 +42,6 @@ public class CommandRegistry {
 	private static final SuggestionProvider<ServerCommandSource> DISASTER_TYPE_SUGGESTIONS = (ctx, builder) ->
 			CommandSource.suggestMatching(
 					Stream.of(DisasterType.values()).map(Enum::name).toList(), builder);
-
-	/**
-	 * First corner storage per player for bounding‑box zone definition.
-	 */
-	private static final Map<UUID, BlockPos> zoneCorner1 = new HashMap<>();
 
 	/**
 	 * Helper for building polygon zones point by point.
@@ -115,24 +109,6 @@ public class CommandRegistry {
 									)
 							)
 
-							// debug
-							.then(CommandManager.literal("debug")
-									.then(CommandManager.literal("visualiseBorders")
-											.then(CommandManager.argument("state", StringArgumentType.word())
-													.suggests((ctx, b) -> CommandSource.suggestMatching(
-															List.of("on", "off"), b))
-													.executes(ctx -> {
-														ServerPlayerEntity player = ctx.getSource().getPlayer();
-														boolean on = "on".equalsIgnoreCase(StringArgumentType.getString(ctx, "state"));
-														DebugManager.toggleVisualizeBorders(player, on);
-														ctx.getSource().sendFeedback(() ->
-																Text.literal("Border visualization " + (on ? "enabled" : "disabled")), false);
-														return 1;
-													})
-											)
-									)
-							)
-
 							// island
 							.then(CommandManager.literal("island")
 									.then(CommandManager.literal("disaster")
@@ -163,7 +139,6 @@ public class CommandRegistry {
 												for (Island isl : DataManager.islands.values()) {
 													String zoneInfo = switch (isl.zone) {
 														case null -> "Not set";
-														case BoundingBox bb -> bb.min + " to " + bb.max;
 														case PolygonZone pz ->
 																"Polygon (" + pz.points.size() + " points)";
 														default -> "Unknown";
@@ -255,10 +230,17 @@ public class CommandRegistry {
 											.then(CommandManager.argument("islandId", StringArgumentType.word())
 													.suggests(ISLAND_ID_SUGGESTIONS)
 													.executes(ctx -> {
-														ServerPlayerEntity pl = ctx.getSource().getPlayer();
-														zoneCorner1.put(pl.getUuid(), pl.getBlockPos());
+														ServerPlayerEntity player = ctx.getSource().getPlayer();
+														UUID uid = player.getUuid();
+														
+														// Start a polygon builder instead of using zone corners
+														PolygonBuilder pb = new PolygonBuilder();
+														pb.islandId = StringArgumentType.getString(ctx, "islandId");
+														pb.points.add(player.getBlockPos()); // Add first corner
+														polygonBuilders.put(uid, pb);
+														
 														ctx.getSource().sendFeedback(() ->
-																Text.literal("First corner set at your position."), false);
+																Text.literal("First corner set at your position. Use /sbi island zone2 to add the second corner."), false);
 														return 1;
 													})
 											)
@@ -267,19 +249,34 @@ public class CommandRegistry {
 											.then(CommandManager.argument("islandId", StringArgumentType.word())
 													.suggests(ISLAND_ID_SUGGESTIONS)
 													.executes(ctx -> {
-														ServerPlayerEntity pl = ctx.getSource().getPlayer();
+														ServerPlayerEntity player = ctx.getSource().getPlayer();
 														String id = StringArgumentType.getString(ctx, "islandId");
 														Island isl = DataManager.islands.get(id);
-														BlockPos first = zoneCorner1.remove(pl.getUuid());
-														if (isl == null || first == null) {
+														UUID uid = player.getUuid();
+														
+														PolygonBuilder pb = polygonBuilders.get(uid);
+														if (isl == null || pb == null || !pb.islandId.equals(id)) {
 															ctx.getSource().sendError(Text.literal(
-																	isl == null ? "Island does not exist." : "First corner not set."));
+																	isl == null ? "Island does not exist." : "First corner not set with /sbi island zone1."));
 															return 0;
 														}
-														isl.zone = new BoundingBox(first, pl.getBlockPos());
+														
+														// Add remaining points to form a rectangle
+														BlockPos firstPos = pb.points.get(0);
+														BlockPos secondPos = player.getBlockPos();
+														
+														// Create a rectangular polygon from the two corners
+														pb.points.clear(); // Clear the first point
+														pb.points.add(firstPos); // Top-left
+														pb.points.add(new BlockPos(secondPos.getX(), firstPos.getY(), firstPos.getZ())); // Top-right
+														pb.points.add(secondPos); // Bottom-right
+														pb.points.add(new BlockPos(firstPos.getX(), firstPos.getY(), secondPos.getZ())); // Bottom-left
+														
+														isl.zone = new PolygonZone(pb.points);
+														polygonBuilders.remove(uid);
 														DataManager.saveAll();
 														ctx.getSource().sendFeedback(() ->
-																Text.literal("Zone for island " + id + " set."), false);
+																Text.literal("Rectangular zone for island " + id + " set."), false);
 														return 1;
 													})
 											)
