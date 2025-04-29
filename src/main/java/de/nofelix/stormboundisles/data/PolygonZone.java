@@ -14,6 +14,10 @@ public class PolygonZone implements Zone {
     public final int minY;
     /** The maximum Y-coordinate among all vertices, defining the top of the zone. */
     public final int maxY;
+    /** Tolerance threshold for edge detection, determines how close a point must be to be considered on an edge */
+    private static final double EDGE_TOLERANCE = 0.01;
+    /** Offset to the center of a block from its corner coordinates */
+    private static final double BLOCK_CENTER_OFFSET = 0.5;
 
     /**
      * Constructs a new PolygonZone from a list of vertices.
@@ -61,6 +65,24 @@ public class PolygonZone implements Zone {
     }
 
     /**
+     * Gets the X coordinate of the center of a block.
+     * @param pos The BlockPos
+     * @return The X coordinate of the block center
+     */
+    private double centerX(BlockPos pos) {
+        return pos.getX() + BLOCK_CENTER_OFFSET;
+    }
+
+    /**
+     * Gets the Z coordinate of the center of a block.
+     * @param pos The BlockPos
+     * @return The Z coordinate of the block center
+     */
+    private double centerZ(BlockPos pos) {
+        return pos.getZ() + BLOCK_CENTER_OFFSET;
+    }
+
+    /**
      * Checks if the given position is contained within the horizontal boundaries (X and Z) of this polygon
      * using an enhanced ray casting algorithm with improved edge case handling.
      *
@@ -74,16 +96,16 @@ public class PolygonZone implements Zone {
             return true;
         }
         
-        double x = pos.getX() + 0.5; // Use center of block for more consistent results
-        double z = pos.getZ() + 0.5;
+        double x = centerX(pos);
+        double z = centerZ(pos);
         boolean inside = false;
         int n = points.size();
         
         for (int i = 0, j = n - 1; i < n; j = i++) {
-            double xi = points.get(i).getX() + 0.5;
-            double zi = points.get(i).getZ() + 0.5;
-            double xj = points.get(j).getX() + 0.5;
-            double zj = points.get(j).getZ() + 0.5;
+            double xi = centerX(points.get(i));
+            double zi = centerZ(points.get(i));
+            double xj = centerX(points.get(j));
+            double zj = centerZ(points.get(j));
             
             // Check if ray crosses edge
             boolean intersect = ((zi > z) != (zj > z)) && // z is between zi and zj
@@ -102,18 +124,18 @@ public class PolygonZone implements Zone {
      * @return True if the position lies on any edge of the polygon, false otherwise.
      */
     private boolean isOnPolygonEdge(BlockPos pos) {
-        double x = pos.getX() + 0.5;
-        double z = pos.getZ() + 0.5;
+        double x = centerX(pos);
+        double z = centerZ(pos);
         int n = points.size();
         
         for (int i = 0, j = n - 1; i < n; j = i++) {
-            double xi = points.get(i).getX() + 0.5;
-            double zi = points.get(i).getZ() + 0.5;
-            double xj = points.get(j).getX() + 0.5;
-            double zj = points.get(j).getZ() + 0.5;
+            double xi = centerX(points.get(i));
+            double zi = centerZ(points.get(i));
+            double xj = centerX(points.get(j));
+            double zj = centerZ(points.get(j));
             
             // Check if point lies on line segment using distance calculation
-            if (distanceToLineSegmentSquared(x, z, xi, zi, xj, zj) < 0.01) {
+            if (distanceToLineSegmentSquared(x, z, xi, zi, xj, zj) < EDGE_TOLERANCE) {
                 return true;
             }
         }
