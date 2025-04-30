@@ -67,7 +67,7 @@ public class BuffAuraHandler {
 			}
 
 			BlockPos pos = player.getBlockPos();
-			if (island.getZone().containsHorizontal(pos)) {
+			if (island.getZone().contains(pos)) {
 				if (shouldLog) {
 					StormboundIslesMod.LOGGER.debug("Applying {} buff to {}", island.getType(), player.getName().getString());
 				}

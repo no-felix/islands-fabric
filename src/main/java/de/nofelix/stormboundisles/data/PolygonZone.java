@@ -120,40 +120,6 @@ public class PolygonZone implements Zone {
     }
 
     /**
-     * Checks if the given position is contained within the horizontal boundaries (X and Z) of this polygon
-     * using an enhanced ray casting algorithm with improved edge case handling.
-     *
-     * @param pos The position to check.
-     * @return True if the position's X and Z coordinates are inside the polygon, false otherwise.
-     */
-    @Override
-    public boolean containsHorizontal(BlockPos pos) {
-        // Check if the point lies exactly on any edge of the polygon
-        if (isOnPolygonEdge(pos)) {
-            return true;
-        }
-        
-        double x = centerX(pos);
-        double z = centerZ(pos);
-        boolean inside = false;
-        int n = points.size();
-        
-        for (int i = 0, j = n - 1; i < n; j = i++) {
-            double xi = centerX(points.get(i));
-            double zi = centerZ(points.get(i));
-            double xj = centerX(points.get(j));
-            double zj = centerZ(points.get(j));
-            
-            // Check if ray crosses edge
-            boolean intersect = ((zi > z) != (zj > z)) && // z is between zi and zj
-                  (x < (xj - xi) * (z - zi) / (zj - zi) + xi);
-            
-            if (intersect) inside = !inside;
-        }
-        return inside;
-    }
-    
-    /**
      * Checks if a point lies exactly on any edge of the polygon.
      * This helps with edge case detection for more consistent behavior.
      *
@@ -206,14 +172,37 @@ public class PolygonZone implements Zone {
     }
 
     /**
-     * Checks if the given position is contained within this polygonal zone, considering both horizontal
-     * position (using {@link #containsHorizontal(BlockPos)}) and vertical position (between minY and maxY, inclusive).
+     * Checks if the given position is contained within the horizontal boundaries (X and Z) of this polygon
+     * using an enhanced ray casting algorithm with improved edge case handling.
+     * This method ignores the Y-coordinate, effectively treating the zone as infinitely tall.
      *
      * @param pos The position to check.
      * @return True if the position is inside the zone, false otherwise.
      */
     @Override
     public boolean contains(BlockPos pos) {
-        return pos.getY() >= minY && pos.getY() <= maxY && containsHorizontal(pos);
+        // Check if the point lies exactly on any edge of the polygon
+        if (isOnPolygonEdge(pos)) {
+            return true;
+        }
+
+        double x = centerX(pos);
+        double z = centerZ(pos);
+        boolean inside = false;
+        int n = points.size();
+
+        for (int i = 0, j = n - 1; i < n; j = i++) {
+            double xi = centerX(points.get(i));
+            double zi = centerZ(points.get(i));
+            double xj = centerX(points.get(j));
+            double zj = centerZ(points.get(j));
+
+            // Check if ray crosses edge
+            boolean intersect = ((zi > z) != (zj > z)) && // z is between zi and zj
+                    (x < (xj - xi) * (z - zi) / (zj - zi) + xi);
+
+            if (intersect) inside = !inside;
+        }
+        return inside;
     }
 }

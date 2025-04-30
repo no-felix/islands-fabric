@@ -79,7 +79,7 @@ public final class PlayerEventHandler {
 		if (island == null || island.getZone() == null) return;
 
 		BlockPos pos = player.getBlockPos();
-		if (!island.getZone().containsHorizontal(pos)) {
+		if (!island.getZone().contains(pos)) {
 			long now = System.currentTimeMillis();
 			Long last = lastBoundaryWarning.get(player.getUuid());
 			if (last == null || (now - last) > WARNING_COOLDOWN_MS) {
