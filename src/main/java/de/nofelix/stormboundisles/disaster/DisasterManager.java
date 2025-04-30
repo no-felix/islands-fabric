@@ -70,15 +70,13 @@ public class DisasterManager {
 			}
 		}
 
-		// Schedule removal of the active disaster flag after a delay (e.g., 5 seconds)
-		server.execute(() -> {
-			try {
-				Thread.sleep(5000);
-			} catch (InterruptedException ignored) {
-				Thread.currentThread().interrupt();
+		// Schedule removal of the active disaster flag after a delay (5 seconds = 100 ticks)
+		new Timer().schedule(new TimerTask() {
+			@Override
+			public void run() {
+				activeDisasters.remove(disasterKey);
 			}
-			activeDisasters.remove(disasterKey);
-		});
+		}, 100 * 50); // 100 ticks * 50ms per tick = 5000ms = 5 seconds
 	}
 
 	/**
