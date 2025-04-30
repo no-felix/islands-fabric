@@ -6,6 +6,7 @@ import de.nofelix.stormboundisles.data.Island;
 import de.nofelix.stormboundisles.data.Team;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.boss.BossBar;
 import net.minecraft.entity.boss.ServerBossBar;
 import net.minecraft.server.MinecraftServer;
@@ -58,6 +59,13 @@ public class GameManager {
         // Restore bossbar on server start when loading from game_state
         ServerLifecycleEvents.SERVER_STARTED.register(GameManager::setupBossBar);
         ServerTickEvents.END_SERVER_TICK.register(GameManager::onServerTick);
+        
+        // Add player to bossbar when they join
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            if (phaseBar != null && phase != GamePhase.ENDED) {
+                phaseBar.addPlayer(handler.getPlayer());
+            }
+        });
     }
 
     /** 
@@ -110,7 +118,7 @@ public class GameManager {
 
     /**
      * Stops the game, transitioning to the ENDED phase.
-     * Sets game mode, broadcasts messages, and hides the BossBar.
+     * Sets game mode, broadcasts messages, and removes the BossBar.
      * @param server The Minecraft server instance.
      */
     public static void stopGame(MinecraftServer server) {
@@ -119,9 +127,19 @@ public class GameManager {
         setAllPlayersGameMode(server, GameMode.ADVENTURE);
         server.getPlayerManager().broadcast(Text.literal("Game stopped."), false);
         
-        // Remove bossbar
+        // Remove bossbar completely - not just hide it
+        removeBossBar();
+    }
+
+    /**
+     * Completely removes the current BossBar if it exists.
+     * This prevents ghost/duplicate BossBars from appearing.
+     */
+    private static void removeBossBar() {
         if (phaseBar != null) {
+            phaseBar.clearPlayers();
             phaseBar.setVisible(false);
+            phaseBar = null;
         }
     }
 
@@ -141,7 +159,7 @@ public class GameManager {
         DataManager.saveGameState();
         
         switch (phase) {
-            case LOBBY:
+            case LOBBY, ENDED:
                 setPvp(server, false);
                 setAllPlayersGameMode(server, GameMode.ADVENTURE);
                 break;
@@ -154,10 +172,6 @@ public class GameManager {
                 setAllPlayersGameMode(server, GameMode.SURVIVAL);
                 server.getPlayerManager().broadcast(Text.literal("PvP phase started!"), false);
                 break;
-            case ENDED:
-                setPvp(server, false);
-                setAllPlayersGameMode(server, GameMode.ADVENTURE);
-                break;
         }
     }
     
@@ -168,14 +182,32 @@ public class GameManager {
      * @param server The Minecraft server instance.
      */
     public static void setupBossBar(MinecraftServer server) {
-        // Create or update BossBar using current phase title and color
+        // Remove existing BossBar to prevent duplicates
+        removeBossBar();
+        
+        // Don't create a BossBar in ENDED phase unless we're starting a countdown
+        if (phase == GamePhase.ENDED && !isStarting) {
+            return;
+        }
+        
+        // Create new BossBar with current phase settings
         phaseBar = new ServerBossBar(
             getBossBarTitle(),               // Title based on current game phase
             getBossBarColor(),               // Color based on current game phase
             BossBar.Style.PROGRESS           // Style
         );
 
-        phaseBar.setPercent(1.0f);      // Set progress to 100%
+        // Set initial progress based on current phase
+        if (isStarting) {
+            phaseBar.setPercent((float) countdownTicks / COUNTDOWN_TOTAL_TICKS);
+        } else if (phase == GamePhase.BUILD && phaseTicks > 0) {
+            phaseBar.setPercent(1.0f - ((float) phaseTicks / BUILD_TICKS));
+        } else if (phase == GamePhase.PVP && phaseTicks > 0) {
+            phaseBar.setPercent(1.0f - ((float) phaseTicks / PVP_TICKS));
+        } else {
+            phaseBar.setPercent(1.0f);
+        }
+
         phaseBar.setVisible(true);      // Activate visibility
         phaseBar.setDarkenSky(false);   // Don't darken the sky
         phaseBar.setThickenFog(false);  // Don't thicken the fog
@@ -192,6 +224,21 @@ public class GameManager {
      * @return The Text object representing the BossBar title.
      */
     private static Text getBossBarTitle() {
+        if (isStarting) {
+            int seconds = countdownTicks / 20;
+            return Text.literal("Starting in " + seconds + "s");
+        }
+        
+        if (phase == GamePhase.BUILD && phaseTicks > 0) {
+            int remainingMinutes = (BUILD_TICKS - phaseTicks) / (20 * 60);
+            return Text.literal("Build Phase - " + formatTime(remainingMinutes));
+        }
+        
+        if (phase == GamePhase.PVP && phaseTicks > 0) {
+            int remainingMinutes = (PVP_TICKS - phaseTicks) / (20 * 60);
+            return Text.literal("PvP Phase - " + formatTime(remainingMinutes));
+        }
+        
 	    return switch (phase) {
 		    case LOBBY -> Text.literal("Lobby Phase - Waiting to start");
 		    case BUILD -> Text.literal("Build Phase - PvP disabled");

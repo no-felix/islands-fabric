@@ -28,6 +28,17 @@ loom {
 		}
 	}
 
+	runs {
+		client {
+			runDir = "runClient"
+			client()
+		}
+		server {
+			runDir = "runServer"
+			server()
+		}
+	}
+
 }
 
 dependencies {
