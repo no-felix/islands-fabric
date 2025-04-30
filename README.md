@@ -13,5 +13,7 @@ Ziel ist es, die eigene Insel zu gestalten, als Team zu überleben und am Ende s
 - Bewertungsphase: Punkte für Bauwerke, Überleben und Kreativität – inkl. Jury-System
 - PvP-Phase nach Ablauf der „Schutzwoche“ – dann sind Überfälle und Kämpfe möglich
 - Modpack basierend auf Fabric (u.a. Simple Voice Chat, Sodium, Create, Iris, ...)
-
-Weitere Infos siehe [ISLANDS.md](ISLANDS.md) und [GAMEPLAY.md](GAMEPLAY.md).
+  
+<p align="right">
+  <img src="src/main/resources/assets/stormbound-isles/icon.png" alt="Stormbound Isles Icon" width="48" />
+</p>
