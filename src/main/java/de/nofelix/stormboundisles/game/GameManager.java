@@ -38,8 +38,6 @@ public class GameManager {
     // BossBar related fields
     /** The server-side BossBar instance used to display phase information. */
     private static ServerBossBar phaseBar;
-    /** Keep track of whether the phaseBar has been initialized */
-    private static boolean phaseBarInitialized = false;
     
     // Countdown related fields
     /** Flag indicating if the pre-game countdown is active. */
@@ -142,7 +140,6 @@ public class GameManager {
             phaseBar.clearPlayers();
             phaseBar.setVisible(false);
             phaseBar = null;
-            phaseBarInitialized = false;
         }
     }
 
@@ -220,8 +217,6 @@ public class GameManager {
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
             phaseBar.addPlayer(player);
         }
-        
-        phaseBarInitialized = true;
     }
     
     /**
