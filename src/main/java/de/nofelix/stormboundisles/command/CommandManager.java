@@ -2,7 +2,6 @@ package de.nofelix.stormboundisles.command;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import de.nofelix.stormboundisles.command.categories.*;
-import de.nofelix.stormboundisles.command.util.CommandSuggestions;
 import de.nofelix.stormboundisles.data.DataManager;
 import de.nofelix.stormboundisles.data.Island;
 import de.nofelix.stormboundisles.data.IslandType;
@@ -33,9 +32,6 @@ public class CommandManager {
      * Creates a new command manager and initializes all command categories.
      */
     public CommandManager() {
-        // Initialize the command suggestions helper
-        CommandSuggestions.initialize();
-        
         // Create command categories
         this.adminCommands = new AdminCommands();
         this.islandCommands = new IslandCommands();
