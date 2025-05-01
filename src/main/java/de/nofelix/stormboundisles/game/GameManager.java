@@ -1,6 +1,7 @@
 package de.nofelix.stormboundisles.game;
 
 import de.nofelix.stormboundisles.StormboundIslesMod;
+import de.nofelix.stormboundisles.config.ConfigManager;
 import de.nofelix.stormboundisles.data.DataManager;
 import de.nofelix.stormboundisles.data.Island;
 import de.nofelix.stormboundisles.data.Team;
@@ -24,12 +25,6 @@ import java.util.UUID;
  * Manages the overall game flow, including phases, timers, player states, and game events.
  */
 public class GameManager {
-    // Constants defining the duration of game phases in ticks (20 ticks = 1 second)
-    /** Duration of the build phase in ticks (e.g., 1 week). */
-    private static final int BUILD_TICKS = 20 * 60 * 60 * 24 * 7; // 1 week
-    /** Duration of the PvP phase in ticks (e.g., 1 week). */
-    private static final int PVP_TICKS = 20 * 60 * 60 * 24 * 7;   // 1 week
-    
     /** The current phase of the game. */
     public static GamePhase phase = GamePhase.LOBBY;
     /** The number of ticks elapsed in the current game phase. */
@@ -44,8 +39,6 @@ public class GameManager {
     private static boolean isStarting = false;
     /** Remaining ticks in the pre-game countdown. */
     private static int countdownTicks = 0;
-    /** Total duration of the pre-game countdown in ticks. */
-    private static final int COUNTDOWN_TOTAL_TICKS = 20 * 10; // 10 seconds countdown
 
     /** Random number generator for various game mechanics. */
     private static final Random random = new Random();
@@ -93,10 +86,12 @@ public class GameManager {
      * @param server The Minecraft server instance.
      */
     public static void startCountdown(MinecraftServer server) {
+        if (isStarting) return; // Prevent multiple countdowns
+
         isStarting = true;
-        countdownTicks = COUNTDOWN_TOTAL_TICKS;
+        countdownTicks = ConfigManager.getGameCountdownDurationTicks();
         setupBossBar(server);
-        server.getPlayerManager().broadcast(Text.literal("Game starting in " + (COUNTDOWN_TOTAL_TICKS / 20) + " seconds..."), false);
+        server.getPlayerManager().broadcast(Text.literal("Game starting in " + (ConfigManager.getGameCountdownDurationTicks() / 20) + " seconds..."), false);
     }
 
     /**
@@ -199,11 +194,11 @@ public class GameManager {
 
         // Set initial progress based on current phase
         if (isStarting) {
-            phaseBar.setPercent((float) countdownTicks / COUNTDOWN_TOTAL_TICKS);
+            phaseBar.setPercent((float) countdownTicks / ConfigManager.getGameCountdownDurationTicks());
         } else if (phase == GamePhase.BUILD && phaseTicks > 0) {
-            phaseBar.setPercent(1.0f - ((float) phaseTicks / BUILD_TICKS));
+            phaseBar.setPercent(1.0f - ((float) phaseTicks / ConfigManager.getGameBuildPhaseTicks()));
         } else if (phase == GamePhase.PVP && phaseTicks > 0) {
-            phaseBar.setPercent(1.0f - ((float) phaseTicks / PVP_TICKS));
+            phaseBar.setPercent(1.0f - ((float) phaseTicks / ConfigManager.getGamePvpPhaseTicks()));
         } else {
             phaseBar.setPercent(1.0f);
         }
@@ -230,12 +225,12 @@ public class GameManager {
         }
         
         if (phase == GamePhase.BUILD && phaseTicks > 0) {
-            int remainingMinutes = (BUILD_TICKS - phaseTicks) / (20 * 60);
+            int remainingMinutes = (ConfigManager.getGameBuildPhaseTicks() - phaseTicks) / (20 * 60);
             return Text.literal("Build Phase - " + formatTime(remainingMinutes));
         }
         
         if (phase == GamePhase.PVP && phaseTicks > 0) {
-            int remainingMinutes = (PVP_TICKS - phaseTicks) / (20 * 60);
+            int remainingMinutes = (ConfigManager.getGamePvpPhaseTicks() - phaseTicks) / (20 * 60);
             return Text.literal("PvP Phase - " + formatTime(remainingMinutes));
         }
         
@@ -394,58 +389,60 @@ public class GameManager {
     private static void onServerTick(MinecraftServer server) {
         // Handle pre-game countdown
         if (isStarting) {
-            countdownTicks--;
-            if (countdownTicks % 20 == 0 && phaseBar != null) {
-                int seconds = countdownTicks / 20;
-                server.getPlayerManager().broadcast(Text.literal("Game starting in " + seconds + " seconds..."), false);
-                phaseBar.setName(Text.literal("Starting in " + seconds + "s"));
-                phaseBar.setPercent((float) countdownTicks / COUNTDOWN_TOTAL_TICKS);
+            if (countdownTicks > 0) {
+                countdownTicks--;
+                // Update BossBar progress based on remaining countdown ticks
+                if (phaseBar != null) {
+                    float progress = (float) countdownTicks / ConfigManager.getGameCountdownDurationTicks();
+                    phaseBar.setPercent(progress);
+                    phaseBar.setName(Text.literal("Starting in " + (countdownTicks / 20 + 1) + "s"));
+                }
+                if (countdownTicks == 0) {
+                    isStarting = false;
+                    startGame(server);
+                }
+                return; // Don't process phase ticks during countdown
             }
-            if (countdownTicks <= 0) {
-                isStarting = false;
-                startGame(server);
-            }
-            return;
         }
 
         if (phase == GamePhase.BUILD) {
             phaseTicks++;
             // Update bossbar progress
             if (phaseBar != null) {
-                float progress = 1.0f - ((float) phaseTicks / BUILD_TICKS);
+                float progress = 1.0f - ((float) phaseTicks / ConfigManager.getGameBuildPhaseTicks());
                 phaseBar.setPercent(progress);
                 
                 // Update title with remaining time every minute
                 if (phaseTicks % (20 * 60) == 0) {
-                    int remainingMinutes = (BUILD_TICKS - phaseTicks) / (20 * 60);
+                    int remainingMinutes = (ConfigManager.getGameBuildPhaseTicks() - phaseTicks) / (20 * 60);
                     phaseBar.setName(Text.literal("Build Phase - " + formatTime(remainingMinutes)));
                     // Persist regularly
                     DataManager.saveGameState();
                 }
             }
             
-            if (phaseTicks >= BUILD_TICKS) {
-                StormboundIslesMod.LOGGER.info("Build phase timer completed ({} ticks)", BUILD_TICKS);
+            if (phaseTicks >= ConfigManager.getGameBuildPhaseTicks()) {
+                StormboundIslesMod.LOGGER.info("Build phase timer completed ({} ticks)", ConfigManager.getGameBuildPhaseTicks());
                 setPhase(GamePhase.PVP, server);
             }
         } else if (phase == GamePhase.PVP) {
             phaseTicks++;
             // Update bossbar progress
             if (phaseBar != null) {
-                float progress = 1.0f - ((float) phaseTicks / PVP_TICKS);
+                float progress = 1.0f - ((float) phaseTicks / ConfigManager.getGamePvpPhaseTicks());
                 phaseBar.setPercent(progress);
                 
                 // Update title with remaining time every minute
                 if (phaseTicks % (20 * 60) == 0) {
-                    int remainingMinutes = (PVP_TICKS - phaseTicks) / (20 * 60);
+                    int remainingMinutes = (ConfigManager.getGamePvpPhaseTicks() - phaseTicks) / (20 * 60);
                     phaseBar.setName(Text.literal("PvP Phase - " + formatTime(remainingMinutes)));
                     // Persist regularly
                     DataManager.saveGameState();
                 }
             }
             
-            if (phaseTicks >= PVP_TICKS) {
-                StormboundIslesMod.LOGGER.info("PvP phase timer completed ({} ticks)", PVP_TICKS);
+            if (phaseTicks >= ConfigManager.getGamePvpPhaseTicks()) {
+                StormboundIslesMod.LOGGER.info("PvP phase timer completed ({} ticks)", ConfigManager.getGamePvpPhaseTicks());
                 setPhase(GamePhase.ENDED, server);
                 server.getPlayerManager().broadcast(Text.literal("Game ended!"), false);
             }

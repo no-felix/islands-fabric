@@ -70,13 +70,15 @@ public class DisasterManager {
 			}
 		}
 
-		// Schedule removal of the active disaster flag after a delay (5 seconds = 100 ticks)
+		// Schedule removal of the active disaster flag after a delay
+		// Use ConfigManager.getDisasterCooldownTicks() and convert to milliseconds (ticks * 50ms/tick)
+		long cooldownMillis = (long) ConfigManager.getDisasterCooldownTicks() * 50L;
 		new Timer().schedule(new TimerTask() {
 			@Override
 			public void run() {
 				activeDisasters.remove(disasterKey);
 			}
-		}, 100 * 50); // 100 ticks * 50ms per tick = 5000ms = 5 seconds
+		}, cooldownMillis);
 	}
 
 	/**
@@ -88,24 +90,28 @@ public class DisasterManager {
 	 * @param server The Minecraft server instance (needed for damage sources).
 	 */
 	private static void applyDisasterEffect(ServerPlayerEntity player, DisasterType type, MinecraftServer server) {
+		// Use ConfigManager.getDisasterEffectDurationTicks() for status effect durations
+		int duration = ConfigManager.getDisasterEffectDurationTicks();
 		switch (type) {
 			case METEOR:
-				player.damage(server.getOverworld().getDamageSources().generic(), 8.0F);
+				 // Use Disaster getter for meteor damage
+				player.damage(server.getOverworld().getDamageSources().generic(), ConfigManager.getDisasterMeteorDamage());
 				break;
 			case BLIZZARD:
-				player.setFrozenTicks(player.getFrozenTicks() + 200);
+				// Use Disaster getter for blizzard freeze ticks
+				player.setFrozenTicks(player.getFrozenTicks() + ConfigManager.getDisasterBlizzardFreezeTicks());
 				break;
 			case SANDSTORM:
 				player.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
-						net.minecraft.entity.effect.StatusEffects.BLINDNESS, 200, 0));
+						net.minecraft.entity.effect.StatusEffects.BLINDNESS, duration, 0));
 				break;
 			case SPORE:
 				player.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
-						net.minecraft.entity.effect.StatusEffects.POISON, 100, 0));
+						net.minecraft.entity.effect.StatusEffects.POISON, duration, 0));
 				break;
 			case CRYSTAL_STORM:
 				player.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
-						net.minecraft.entity.effect.StatusEffects.LEVITATION, 60, 0));
+						net.minecraft.entity.effect.StatusEffects.LEVITATION, duration, 0));
 				break;
 		}
 	}

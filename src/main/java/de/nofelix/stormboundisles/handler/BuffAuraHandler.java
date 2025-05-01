@@ -20,7 +20,6 @@ import java.util.Optional;
  */
 public class BuffAuraHandler {
 	private static final long LOG_INTERVAL = 10_000L;
-	private static final int BUFF_DURATION_TICKS = 80;
 	private static final boolean AMBIENT = false;
 	private static final boolean SHOW_PARTICLES = true;
 
@@ -83,17 +82,18 @@ public class BuffAuraHandler {
 	 * @param type   the island type determining the buff
 	 */
 	private static void applyBuff(ServerPlayerEntity player, IslandType type) {
+		int duration = ConfigManager.getBuffDurationTicks();
 		StatusEffectInstance effect = switch (type) {
 			case DESERT ->
-					new StatusEffectInstance(StatusEffects.SPEED, BUFF_DURATION_TICKS, 0, true, AMBIENT, SHOW_PARTICLES);
+					new StatusEffectInstance(StatusEffects.SPEED, duration, 0, true, AMBIENT, SHOW_PARTICLES);
 			case VOLCANO ->
-					new StatusEffectInstance(StatusEffects.FIRE_RESISTANCE, BUFF_DURATION_TICKS, 0, true, AMBIENT, SHOW_PARTICLES);
+					new StatusEffectInstance(StatusEffects.FIRE_RESISTANCE, duration, 0, true, AMBIENT, SHOW_PARTICLES);
 			case ICE ->
-					new StatusEffectInstance(StatusEffects.RESISTANCE, BUFF_DURATION_TICKS, 0, true, AMBIENT, SHOW_PARTICLES);
+					new StatusEffectInstance(StatusEffects.RESISTANCE, duration, 0, true, AMBIENT, SHOW_PARTICLES);
 			case MUSHROOM ->
-					new StatusEffectInstance(StatusEffects.REGENERATION, BUFF_DURATION_TICKS, 0, true, AMBIENT, SHOW_PARTICLES);
+					new StatusEffectInstance(StatusEffects.REGENERATION, duration, 0, true, AMBIENT, SHOW_PARTICLES);
 			case CRYSTAL ->
-					new StatusEffectInstance(StatusEffects.HASTE, BUFF_DURATION_TICKS, 0, true, AMBIENT, SHOW_PARTICLES);
+					new StatusEffectInstance(StatusEffects.HASTE, duration, 0, true, AMBIENT, SHOW_PARTICLES);
 		};
 		player.addStatusEffect(effect);
 	}

@@ -25,9 +25,6 @@ import java.util.UUID;
  * Handles player-related events: death penalties and boundary enforcement during the build phase.
  */
 public final class PlayerEventHandler {
-	private static final int DEATH_PENALTY = 10;
-	private static final long WARNING_COOLDOWN_MS = 3_000L;
-
 	private static int boundaryCheckCounter = 0;
 	private static final Map<UUID, Long> lastBoundaryWarning = new HashMap<>();
 
@@ -55,7 +52,7 @@ public final class PlayerEventHandler {
 	private static void onServerTick(MinecraftServer server) {
 		if (GameManager.phase != GamePhase.BUILD) return;
 
-		if (++boundaryCheckCounter < ConfigManager.getBoundaryCheckInterval()) {
+		if (++boundaryCheckCounter < ConfigManager.getPlayerBoundaryCheckInterval()) {
 			return;
 		}
 		boundaryCheckCounter = 0;
@@ -82,7 +79,7 @@ public final class PlayerEventHandler {
 		if (!island.getZone().contains(pos)) {
 			long now = System.currentTimeMillis();
 			Long last = lastBoundaryWarning.get(player.getUuid());
-			if (last == null || (now - last) > WARNING_COOLDOWN_MS) {
+			if (last == null || (now - last) > ConfigManager.getPlayerBoundaryWarningCooldownMs()) {
 				player.sendMessage(
 						Text.literal("§c⚠ You cannot leave your island during the build phase!"),
 						true);
@@ -114,10 +111,11 @@ public final class PlayerEventHandler {
 				.findFirst();
 
 		team.ifPresent(t -> {
-			t.addPoints(-DEATH_PENALTY);
+			int penalty = ConfigManager.getPlayerDeathPenalty();
+			t.addPoints(-penalty);
 			ScoreboardManager.updateTeamScore(t.getName());
 
-			String msg = "Team " + t.getName() + " lost " + DEATH_PENALTY +
+			String msg = "Team " + t.getName() + " lost " + penalty +
 					" points (Player death: " + player.getName().getString() + ")";
 			StormboundIslesMod.LOGGER.info(msg);
 			player.getServer()
