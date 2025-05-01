@@ -81,6 +81,8 @@ public class DisasterManager {
 	 * Triggers a specific disaster on a given island.
 	 * Applies effects to players currently within the island's zone and broadcasts a server-wide message.
 	 * Prevents triggering the same disaster type if it's already active on the island.
+	 * Disasters are automatically removed after their duration by the periodic checkExpiredDisasters mechanism
+	 * which runs during server ticks.
 	 *
 	 * @param server   The Minecraft server instance.
 	 * @param islandId The ID of the island where the disaster occurs.
