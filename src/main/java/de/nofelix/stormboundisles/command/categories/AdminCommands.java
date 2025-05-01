@@ -1,0 +1,116 @@
+package de.nofelix.stormboundisles.command.categories;
+
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import de.nofelix.stormboundisles.command.CommandCategory;
+import de.nofelix.stormboundisles.command.util.CommandPermissions;
+import de.nofelix.stormboundisles.command.util.CommandSuggestions;
+import de.nofelix.stormboundisles.data.DataManager;
+import de.nofelix.stormboundisles.game.GameManager;
+import de.nofelix.stormboundisles.game.GamePhase;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import net.minecraft.server.command.CommandManager;
+import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
+
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Handles administrative commands (admin permission level).
+ */
+public class AdminCommands implements CommandCategory {
+    // Confirmation timeouts
+    private static final long CONFIRMATION_TIMEOUT_MS = 10000; // 10 seconds
+    
+    // Store confirmation timestamps for destructive actions
+    private final Map<UUID, Long> resetConfirmations = new Object2ObjectOpenHashMap<>();
+
+    @Override
+    public void register(LiteralArgumentBuilder<ServerCommandSource> rootCommand) {
+        // Admin category
+        LiteralArgumentBuilder<ServerCommandSource> adminCommand = 
+                CommandManager.literal("admin")
+                .requires(CommandPermissions.requiresPermissionLevel(CommandPermissions.ADMIN_PERMISSION_LEVEL));
+                
+        // Game subcategory
+        LiteralArgumentBuilder<ServerCommandSource> gameCommand = CommandManager.literal("game");
+                
+        // Game start command
+        gameCommand.then(CommandManager.literal("start")
+                .executes(ctx -> {
+                    GameManager.startCountdown(ctx.getSource().getServer());
+                    ctx.getSource().sendFeedback(() ->
+                            Text.literal("Countdown to game start initiated.")
+                                    .formatted(Formatting.GREEN), true); // Broadcast to all players
+                    return 1;
+                })
+        );
+                
+        // Game stop command
+        gameCommand.then(CommandManager.literal("stop")
+                .executes(ctx -> {
+                    GameManager.stopGame(ctx.getSource().getServer());
+                    ctx.getSource().sendFeedback(() ->
+                            Text.literal("Game stopped.")
+                                    .formatted(Formatting.RED), true); // Broadcast to all players
+                    return 1;
+                })
+        );
+                
+        // Game phase command
+        gameCommand.then(CommandManager.literal("phase")
+                .then(CommandManager.argument("phase", StringArgumentType.word())
+                        .suggests(CommandSuggestions.GAME_PHASE_SUGGESTIONS)
+                        .executes(ctx -> {
+                            String phaseStr = StringArgumentType.getString(ctx, "phase").toUpperCase();
+                            try {
+                                GamePhase phase = GamePhase.valueOf(phaseStr);
+                                GameManager.setPhase(phase, ctx.getSource().getServer());
+                                ctx.getSource().sendFeedback(() ->
+                                        Text.literal("Phase set to " + phase).formatted(Formatting.GREEN), false);
+                                return 1;
+                            } catch (IllegalArgumentException e) {
+                                ctx.getSource().sendError(Text.literal("Invalid phase.").formatted(Formatting.RED));
+                                return 0;
+                            }
+                        })
+                )
+        );
+                
+        // Add game subcategory to admin category
+        adminCommand.then(gameCommand);
+                
+        // Admin reset command
+        adminCommand.then(CommandManager.literal("reset")
+                .executes(ctx -> {
+                    UUID playerUuid = ctx.getSource().getPlayer().getUuid();
+                    long currentTime = System.currentTimeMillis();
+                    
+                    if (resetConfirmations.containsKey(playerUuid) &&
+                            currentTime - resetConfirmations.get(playerUuid) < CONFIRMATION_TIMEOUT_MS) {
+                        // Confirmed, perform reset
+                        resetConfirmations.remove(playerUuid);
+                        DataManager.clearIslands();
+                        DataManager.clearTeams();
+                        
+                        // Re-initialize with default islands (delegated to CommandManager)
+                        ctx.getSource().sendFeedback(() ->
+                                Text.literal("Game data reset successfully.").formatted(Formatting.GREEN), false);
+                        return 1;
+                    } else {
+                        // Ask for confirmation
+                        resetConfirmations.put(playerUuid, currentTime);
+                        ctx.getSource().sendFeedback(() ->
+                                Text.literal("⚠ WARNING: This will delete ALL game data. Run command again within 10 seconds to confirm.")
+                                        .formatted(Formatting.RED, Formatting.BOLD), false);
+                        return 1;
+                    }
+                })
+        );
+                
+        // Add admin category to root command
+        rootCommand.then(adminCommand);
+    }
+}
