@@ -149,7 +149,7 @@ public class DisasterManager {
 		// Remove all found disaster keys
 		for (String key : disastersToRemove) {
 			activeDisasters.remove(key);
-			disasterExpirationTimes.remove(key);
+			disasterExpirationTimes.removeLong(key);
 		}
 		
 		// Notify players on the island
