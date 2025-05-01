@@ -9,6 +9,7 @@ This document outlines the coding standards, best practices, and architectural p
 4. [Git Workflow](#git-workflow)
 5. [Documentation](#documentation)
 6. [Testing](#testing)
+7. [Annotations and Automation](#annotations-and-automation)
 
 ## Java Coding Standards
 
@@ -173,6 +174,18 @@ This document outlines the coding standards, best practices, and architectural p
 - Document annotation purposes and behavior
 - Set appropriate priorities for initialization order
 
+### Initialization Pattern
+- All component initialization should use the `@Initialize` annotation
+- Establish clear initialization dependencies through priority values
+- Standard priority levels:
+  - 2000-3000: Core systems and APIs (e.g., command suggestions)
+  - 1500-1999: Managers and services (e.g., polygon builders)
+  - 1000-1499: Game elements (e.g., islands, teams)
+  - 500-999: Feature implementations
+  - 1-499: Late initialization components
+- Avoid manual calls to initialization methods when using annotations
+- Document dependencies between initialization methods in Javadoc
+
 ### Logging
 - Use the mod's logger (`StormboundIslesMod.LOGGER`) for all logging
 - Choose appropriate log levels:
@@ -180,3 +193,4 @@ This document outlines the coding standards, best practices, and architectural p
   - `WARN`: Potential issues or deprecated usage
   - `INFO`: Normal operation information
   - `DEBUG`: Detailed information for debugging
+  - `TRACE`: Fine-grained debugging data
