@@ -46,10 +46,22 @@ Stormbound Isles bietet verschiedene Befehle, die über `/sbi` aufgerufen werden
 
 Das Plugin verwendet eine modulare Befehlsstruktur, die in verschiedene Kategorien aufgeteilt ist. Jede Befehlskategorie ist in einer eigenen Klasse implementiert, was die Wartung und Erweiterung erleichtert.
 
+### Architektur
+
+- **Modulares Befehlssystem**: Basierend auf dem Interface `CommandCategory`
+- **Automatisches Initialisierungssystem**: Komponenten werden über die `@Initialize`-Annotation gefunden und initialisiert
+- **Zentralisierte Fehlermeldungen**: Alle Fehlermeldungen werden in `Constants.java` definiert
+- **Hierarchische Paketstruktur**: Klare Trennung von Zuständigkeiten nach Funktionalität
+
 ### Berechtigungsstufen
 - Level 0: Reguläre Spieler
 - Level 2: Moderatoren
 - Level 3: Administratoren
+
+### Entwickler-Ressourcen
+- [Style Guide](STYLE_GUIDE.md): Detaillierte Coding-Standards und Best Practices für Beiträge
+- Javadoc-Dokumentation für alle öffentlichen Klassen und Methoden
+- Prioritätsbasiertes Initialisierungssystem für eine klare Abhängigkeitsreihenfolge
   
 <p align="right">
   <img src="src/main/resources/assets/stormbound-isles/icon.png" alt="Stormbound Isles Icon" width="48" />
