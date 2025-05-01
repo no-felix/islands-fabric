@@ -8,6 +8,7 @@ import de.nofelix.stormboundisles.game.GameManager;
 import de.nofelix.stormboundisles.game.ScoreboardManager;
 import de.nofelix.stormboundisles.handler.BuffAuraHandler;
 import de.nofelix.stormboundisles.handler.PlayerEventHandler;
+import de.nofelix.stormboundisles.init.InitializationRegistry;
 import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +19,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class StormboundIslesMod implements ModInitializer {
 	public static final String MOD_ID = "stormboundisles";
+	public static final String BASE_PACKAGE = "de.nofelix.stormboundisles";
 
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 	
@@ -33,7 +35,10 @@ public final class StormboundIslesMod implements ModInitializer {
 		ConfigManager.loadConfig();
 		DataManager.loadAll();
 		
-		// Initialize and register commands using the new command manager
+		// Run all initialization methods discovered by the annotation scanner
+		InitializationRegistry.initializeAll(BASE_PACKAGE);
+		
+		// Initialize and register commands using the command manager
 		commandManager = new CommandManager();
 		commandManager.register();
 		

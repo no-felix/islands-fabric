@@ -1,6 +1,7 @@
 package de.nofelix.stormboundisles.command.util;
 
 import de.nofelix.stormboundisles.data.PolygonZone;
+import de.nofelix.stormboundisles.init.Initialize;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.util.math.BlockPos;
 
@@ -113,6 +114,15 @@ public class PolygonBuilderManager {
     
     /** Map of active polygon builders by player UUID */
     private static final Map<UUID, PolygonBuilder> polygonBuilders = new Object2ObjectOpenHashMap<>();
+    
+    /**
+     * Initializes the polygon builder manager.
+     * This method is automatically called during mod startup via the annotation-based initialization system.
+     */
+    @Initialize(priority = 1500, description = "Initialize polygon builder manager")
+    public static void initialize() {
+        // This method is intentionally empty for now, but can be used to initialize any state in the future
+    }
     
     /**
      * Starts a new polygon building session for a player.

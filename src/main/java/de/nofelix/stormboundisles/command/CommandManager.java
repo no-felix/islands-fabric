@@ -7,6 +7,7 @@ import de.nofelix.stormboundisles.data.DataManager;
 import de.nofelix.stormboundisles.data.Island;
 import de.nofelix.stormboundisles.data.IslandType;
 import de.nofelix.stormboundisles.data.Team;
+import de.nofelix.stormboundisles.init.Initialize;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.server.command.ServerCommandSource;
 
@@ -16,8 +17,6 @@ import net.minecraft.server.command.ServerCommandSource;
  * This class serves as the central entry point for the command system, coordinating all command categories
  * and handling their registration with the Minecraft command dispatcher. It delegates command execution
  * to specialized category implementations that each handle a specific subset of functionality.
- * <p>
- * The command manager also initializes the default islands and teams during construction.
  */
 public class CommandManager {
     /** The root command name for all mod commands. */
@@ -32,7 +31,6 @@ public class CommandManager {
 
     /**
      * Creates a new command manager and initializes all command categories.
-     * Also initializes default islands and teams if they don't exist.
      */
     public CommandManager() {
         // Initialize the command suggestions helper
@@ -44,9 +42,6 @@ public class CommandManager {
         this.teamCommands = new TeamCommands();
         this.pointsCommands = new PointsCommands();
         this.playerCommands = new PlayerCommands();
-        
-        // Initialize default islands and teams
-        initIslandsAndTeams();
     }
 
     /**
@@ -81,8 +76,12 @@ public class CommandManager {
      *   <li>Creates a team with the island type name if it doesn't exist</li>
      *   <li>Links the island and team together if they aren't already linked</li>
      * </ol>
+     * <p>
+     * This method is automatically called during mod initialization through
+     * the annotation-based initialization system.
      */
-    private void initIslandsAndTeams() {
+    @Initialize(priority = 1200, description = "Initialize default islands and teams")
+    public static void initIslandsAndTeams() {
         for (IslandType type : IslandType.values()) {
             String id = type.name().toLowerCase();
             Island island = DataManager.getIsland(id);

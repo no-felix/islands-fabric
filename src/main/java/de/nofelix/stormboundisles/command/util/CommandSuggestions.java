@@ -4,6 +4,7 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import de.nofelix.stormboundisles.data.DataManager;
 import de.nofelix.stormboundisles.disaster.DisasterType;
 import de.nofelix.stormboundisles.game.GamePhase;
+import de.nofelix.stormboundisles.init.Initialize;
 import net.minecraft.command.CommandSource;
 import net.minecraft.server.command.ServerCommandSource;
 
@@ -18,7 +19,7 @@ import java.util.stream.Stream;
  * making them easily accessible from any command implementation. It provides suggestion
  * providers for islands, teams, players, game phases, and disaster types.
  * <p>
- * All providers must be initialized before use by calling the {@link #initialize()} method.
+ * All providers are automatically initialized during mod startup via the {@link Initialize} annotation.
  */
 public class CommandSuggestions {
     /** Cached list of game phase names for suggestions */
@@ -45,10 +46,10 @@ public class CommandSuggestions {
     /**
      * Initializes all suggestion providers.
      * <p>
-     * This method must be called before using any suggestion provider, typically during
-     * command system initialization. It caches enum values and creates the suggestion
-     * providers that will be used by command arguments.
+     * This method is automatically called during mod initialization through
+     * the annotation-based initialization system.
      */
+    @Initialize(priority = 2000, description = "Initialize command suggestion providers")
     public static void initialize() {
         // Cache enum values to avoid recreating them for each suggestion
         GAME_PHASE_NAMES = Stream.of(GamePhase.values())
