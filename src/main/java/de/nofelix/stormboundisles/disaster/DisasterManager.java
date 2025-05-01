@@ -1,17 +1,23 @@
 package de.nofelix.stormboundisles.disaster;
 
+import de.nofelix.stormboundisles.StormboundIslesMod;
 import de.nofelix.stormboundisles.config.ConfigManager;
 import de.nofelix.stormboundisles.data.DataManager;
 import de.nofelix.stormboundisles.data.Island;
 import de.nofelix.stormboundisles.data.IslandType;
 import de.nofelix.stormboundisles.game.ActionbarNotifier;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
+import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Manages the triggering and effects of random disasters on islands based on configured intervals.
@@ -19,23 +25,55 @@ import java.util.*;
  */
 public class DisasterManager {
 	/** Maps island types to the possible disasters that can occur on them. */
-	private static final Map<IslandType, DisasterType[]> DEFAULTS = Map.of(
+	private static final Map<IslandType, DisasterType[]> ISLAND_DISASTER_TYPES = Map.of(
 			IslandType.VOLCANO, new DisasterType[]{DisasterType.METEOR},
 			IslandType.ICE, new DisasterType[]{DisasterType.BLIZZARD},
 			IslandType.DESERT, new DisasterType[]{DisasterType.SANDSTORM},
 			IslandType.MUSHROOM, new DisasterType[]{DisasterType.SPORE},
 			IslandType.CRYSTAL, new DisasterType[]{DisasterType.CRYSTAL_STORM}
 	);
+	
+	/** Maps disaster types to their effect application strategy */
+	private static final Map<DisasterType, DisasterEffect> DISASTER_EFFECTS = Map.of(
+	        DisasterType.METEOR, (player, server) -> {
+	            player.damage(server.getOverworld().getDamageSources().generic(), 
+	                    ConfigManager.getDisasterMeteorDamage());
+	        },
+	        DisasterType.BLIZZARD, (player, server) -> {
+	            player.setFrozenTicks(player.getFrozenTicks() + 
+	                    ConfigManager.getDisasterBlizzardFreezeTicks());
+	        },
+	        DisasterType.SANDSTORM, (player, server) -> {
+	            player.addStatusEffect(new StatusEffectInstance(
+	                    StatusEffects.BLINDNESS, 
+	                    ConfigManager.getDisasterEffectDurationTicks(), 0));
+	        },
+	        DisasterType.SPORE, (player, server) -> {
+	            player.addStatusEffect(new StatusEffectInstance(
+	                    StatusEffects.POISON, 
+	                    ConfigManager.getDisasterEffectDurationTicks(), 0));
+	        },
+	        DisasterType.CRYSTAL_STORM, (player, server) -> {
+	            player.addStatusEffect(new StatusEffectInstance(
+	                    StatusEffects.LEVITATION, 
+	                    ConfigManager.getDisasterEffectDurationTicks(), 0));
+	        }
+	);
 
 	/** Counter for server ticks to determine when to trigger the next disaster check. */
-	private static int ticks = 0;
-	/** Set containing keys representing currently active disasters (format: "islandId:DisasterType"). Used to prevent duplicates. */
+	private static int tickCounter = 0;
+	
+	/** Set containing keys representing currently active disasters (format: "islandId:DisasterType"). */
 	private static final Set<String> activeDisasters = new HashSet<>();
+	
+	/** Map tracking when each disaster expires, to avoid Timer threads */
+	private static final Object2LongMap<String> disasterExpirationTimes = new Object2LongOpenHashMap<>();
 
 	/**
 	 * Registers the server tick event listener used for disaster management.
 	 */
 	public static void register() {
+		StormboundIslesMod.LOGGER.info("Registering DisasterManager");
 		ServerTickEvents.END_SERVER_TICK.register(DisasterManager::onServerTick);
 	}
 
@@ -43,42 +81,122 @@ public class DisasterManager {
 	 * Triggers a specific disaster on a given island.
 	 * Applies effects to players currently within the island's zone and broadcasts a server-wide message.
 	 * Prevents triggering the same disaster type if it's already active on the island.
-	 * The active disaster flag is removed after a short delay.
 	 *
 	 * @param server   The Minecraft server instance.
 	 * @param islandId The ID of the island where the disaster occurs.
 	 * @param type     The type of disaster to trigger.
+	 * @return True if disaster was triggered, false if the island doesn't exist or already has this disaster.
 	 */
-	public static void triggerDisaster(MinecraftServer server, String islandId, DisasterType type) {
+	public static boolean triggerDisaster(MinecraftServer server, String islandId, DisasterType type) {
 		Island island = DataManager.getIsland(islandId);
 		// Ensure island and its zone exist
-		if (island == null || island.getZone() == null) return;
+		if (island == null || island.getZone() == null) return false;
 
 		String disasterKey = islandId + ":" + type;
 		// Prevent duplicate active disasters of the same type on the same island
-		if (activeDisasters.contains(disasterKey)) return;
+		if (activeDisasters.contains(disasterKey)) return false;
+		
+		// Register the disaster as active with its expiration time
+		long expirationTime = System.currentTimeMillis() + 
+		        ((long) ConfigManager.getDisasterCooldownTicks() * 50L);
+		
 		activeDisasters.add(disasterKey);
+		disasterExpirationTimes.put(disasterKey, expirationTime);
+		
+		// Log disaster activation
+		StormboundIslesMod.LOGGER.info("Triggering disaster: {} on island: {}", type, islandId);
 
 		// Broadcast message to all players
-		server.getPlayerManager().broadcast(Text.literal("Disaster on " + islandId + ": " + type.name()).formatted(Formatting.RED), false);
+		broadcastDisasterMessage(server, islandId, type, false);
 
 		// Apply effects and action bar notifications to players on the island
 		for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
 			if (island.getZone().contains(player.getBlockPos())) {
-				ActionbarNotifier.send(player, "§cDisaster: " + type.name() + "!");
+				notifyPlayerOfDisaster(player, type);
 				applyDisasterEffect(player, type, server);
 			}
 		}
-
-		// Schedule removal of the active disaster flag after a delay
-		// Use ConfigManager.getDisasterCooldownTicks() and convert to milliseconds (ticks * 50ms/tick)
-		long cooldownMillis = (long) ConfigManager.getDisasterCooldownTicks() * 50L;
-		new Timer().schedule(new TimerTask() {
-			@Override
-			public void run() {
-				activeDisasters.remove(disasterKey);
+		
+		return true;
+	}
+	
+	/**
+	 * Cancels an active disaster on a specific island.
+	 * This method removes all active disasters associated with the given island ID.
+	 *
+	 * @param server The Minecraft server instance.
+	 * @param islandId The ID of the island where disasters should be cancelled.
+	 * @return True if any disasters were cancelled, false if no active disasters were found.
+	 */
+	public static boolean cancelActiveDisaster(MinecraftServer server, String islandId) {
+		Island island = DataManager.getIsland(islandId);
+		if (island == null) return false;
+		
+		// Find and remove all disasters for this island
+		Set<String> disastersToRemove = new HashSet<>();
+		for (String key : activeDisasters) {
+			if (key.startsWith(islandId + ":")) {
+				disastersToRemove.add(key);
 			}
-		}, cooldownMillis);
+		}
+		
+		if (disastersToRemove.isEmpty()) {
+			return false; // No active disasters found
+		}
+		
+		// Remove all found disaster keys
+		for (String key : disastersToRemove) {
+			activeDisasters.remove(key);
+			disasterExpirationTimes.remove(key);
+		}
+		
+		// Notify players on the island
+		if (island.getZone() != null) {
+			for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+				if (island.getZone().contains(player.getBlockPos())) {
+					ActionbarNotifier.send(player, "§aDisaster on " + islandId + " has subsided!");
+				}
+			}
+		}
+		
+		// Broadcast message
+		broadcastDisasterMessage(server, islandId, null, true);
+		
+		StormboundIslesMod.LOGGER.info("Cancelled {} disasters on island: {}", 
+		        disastersToRemove.size(), islandId);
+		
+		return true;
+	}
+	
+	/**
+	 * Sends a disaster alert or cancellation message to all players.
+	 * 
+	 * @param server The server instance
+	 * @param islandId The affected island
+	 * @param type The disaster type (null if cancellation)
+	 * @param isCancellation Whether this is a cancellation message
+	 */
+	private static void broadcastDisasterMessage(MinecraftServer server, String islandId, 
+	        DisasterType type, boolean isCancellation) {
+	    if (isCancellation) {
+	        server.getPlayerManager().broadcast(
+	                Text.literal("The disaster on " + islandId + " has been cancelled.")
+	                        .formatted(Formatting.GREEN), false);
+	    } else {
+	        server.getPlayerManager().broadcast(
+	                Text.literal("Disaster on " + islandId + ": " + type.name())
+	                        .formatted(Formatting.RED), false);
+	    }
+	}
+	
+	/**
+	 * Notifies a player about an active disaster via action bar.
+	 * 
+	 * @param player The player to notify
+	 * @param type The type of disaster
+	 */
+	private static void notifyPlayerOfDisaster(ServerPlayerEntity player, DisasterType type) {
+	    ActionbarNotifier.send(player, "§cDisaster: " + type.name() + "!");
 	}
 
 	/**
@@ -86,63 +204,97 @@ public class DisasterManager {
 	 * Effects include damage, status effects (freezing, blindness, poison, levitation).
 	 *
 	 * @param player The player to apply the effect to.
-	 * @param type   The type of disaster.
+	 * @param type The type of disaster.
 	 * @param server The Minecraft server instance (needed for damage sources).
 	 */
 	private static void applyDisasterEffect(ServerPlayerEntity player, DisasterType type, MinecraftServer server) {
-		// Use ConfigManager.getDisasterEffectDurationTicks() for status effect durations
-		int duration = ConfigManager.getDisasterEffectDurationTicks();
-		switch (type) {
-			case METEOR:
-				 // Use Disaster getter for meteor damage
-				player.damage(server.getOverworld().getDamageSources().generic(), ConfigManager.getDisasterMeteorDamage());
-				break;
-			case BLIZZARD:
-				// Use Disaster getter for blizzard freeze ticks
-				player.setFrozenTicks(player.getFrozenTicks() + ConfigManager.getDisasterBlizzardFreezeTicks());
-				break;
-			case SANDSTORM:
-				player.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
-						net.minecraft.entity.effect.StatusEffects.BLINDNESS, duration, 0));
-				break;
-			case SPORE:
-				player.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
-						net.minecraft.entity.effect.StatusEffects.POISON, duration, 0));
-				break;
-			case CRYSTAL_STORM:
-				player.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
-						net.minecraft.entity.effect.StatusEffects.LEVITATION, duration, 0));
-				break;
-		}
+	    DisasterEffect effect = DISASTER_EFFECTS.get(type);
+	    if (effect != null) {
+	        effect.apply(player, server);
+	    }
+	}
+	
+	/**
+	 * A functional interface defining how disaster effects are applied to players.
+	 */
+	@FunctionalInterface
+	private interface DisasterEffect {
+	    /**
+	     * Apply a disaster effect to a player.
+	     * 
+	     * @param player The player to affect
+	     * @param server The server instance
+	     */
+	    void apply(ServerPlayerEntity player, MinecraftServer server);
 	}
 
 	/**
 	 * Called every server tick via the registered event listener.
-	 * Checks if the configured disaster interval (from {@link ConfigManager}) has passed.
-	 * If so, randomly selects an island and a compatible disaster type based on {@link #DEFAULTS},
-	 * then calls {@link #triggerDisaster(MinecraftServer, String, DisasterType)}.
+	 * Performs two main functions:
+	 * 1. Checks and removes expired disasters
+	 * 2. Periodically triggers random disasters based on configured interval
 	 *
 	 * @param server The Minecraft server instance.
 	 */
 	private static void onServerTick(MinecraftServer server) {
-		ticks++;
-		// Check if the configured interval has passed
-		if (ticks < ConfigManager.getDisasterIntervalTicks()) {
+	    // Check for expired disasters
+	    checkExpiredDisasters();
+	    
+	    // Only proceed with random disaster checks if enabled
+		tickCounter++;
+		if (tickCounter < ConfigManager.getDisasterIntervalTicks()) {
 			return;
 		}
-		ticks = 0;
-
-		// Select a random island
+		tickCounter = 0;
+		
+		// Attempt to trigger a random disaster
+		triggerRandomDisaster(server);
+	}
+	
+	/**
+	 * Removes any disasters that have passed their expiration time.
+	 */
+	private static void checkExpiredDisasters() {
+	    long currentTime = System.currentTimeMillis();
+	    List<String> expiredDisasters = new ArrayList<>();
+	    
+	    // Find all expired disasters
+	    for (Object2LongMap.Entry<String> entry : disasterExpirationTimes.object2LongEntrySet()) {
+	        if (currentTime > entry.getLongValue()) {
+	            expiredDisasters.add(entry.getKey());
+	        }
+	    }
+	    
+	    // Remove them from both collections
+	    for (String key : expiredDisasters) {
+	        activeDisasters.remove(key);
+	        disasterExpirationTimes.remove(key);
+	    }
+	}
+	
+	/**
+	 * Selects a random island and disaster type, then triggers the disaster.
+	 * 
+	 * @param server The Minecraft server instance
+	 */
+	private static void triggerRandomDisaster(MinecraftServer server) {
+	    // Get all islands and select one randomly
 		List<Island> islands = new ArrayList<>(DataManager.getIslands().values());
 		if (islands.isEmpty()) return;
-		Island island = islands.get(new Random().nextInt(islands.size()));
+		
+		// Use ThreadLocalRandom for better performance
+		ThreadLocalRandom random = ThreadLocalRandom.current();
+		Island island = islands.get(random.nextInt(islands.size()));
 
+		// Skip islands without zones
+		if (island.getZone() == null) return;
+		
 		// Determine possible disasters for the island type
-		DisasterType[] possibleDisasters = DEFAULTS.getOrDefault(island.getType(), new DisasterType[0]);
+		DisasterType[] possibleDisasters = ISLAND_DISASTER_TYPES.getOrDefault(island.getType(), new DisasterType[0]);
 		if (possibleDisasters.length == 0) return;
 
 		// Select a random disaster from the possibilities
-		DisasterType disaster = possibleDisasters[new Random().nextInt(possibleDisasters.length)];
+		DisasterType disaster = possibleDisasters[random.nextInt(possibleDisasters.length)];
 
 		// Trigger the selected disaster
 		triggerDisaster(server, island.getId(), disaster);
