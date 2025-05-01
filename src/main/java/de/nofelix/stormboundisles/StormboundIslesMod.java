@@ -1,6 +1,6 @@
 package de.nofelix.stormboundisles;
 
-import de.nofelix.stormboundisles.command.CommandRegistry;
+import de.nofelix.stormboundisles.command.CommandManager;
 import de.nofelix.stormboundisles.config.ConfigManager;
 import de.nofelix.stormboundisles.data.DataManager;
 import de.nofelix.stormboundisles.disaster.DisasterManager;
@@ -20,6 +20,8 @@ public final class StormboundIslesMod implements ModInitializer {
 	public static final String MOD_ID = "stormboundisles";
 
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+	
+	private CommandManager commandManager;
 
 	/**
 	 * Called by the Fabric loader on mod initialization.
@@ -30,7 +32,11 @@ public final class StormboundIslesMod implements ModInitializer {
 		LOGGER.info("Stormbound Isles Mod initializing...");
 		ConfigManager.loadConfig();
 		DataManager.loadAll();
-		CommandRegistry.register();
+		
+		// Initialize and register commands using the new command manager
+		commandManager = new CommandManager();
+		commandManager.register();
+		
 		BuffAuraHandler.register();
 		GameManager.register();
 		DisasterManager.register();
