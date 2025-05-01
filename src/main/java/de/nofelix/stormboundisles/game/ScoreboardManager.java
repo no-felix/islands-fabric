@@ -112,19 +112,17 @@ public class ScoreboardManager {
 	}
 
 	public static void updateAllScores() {
+		// Simplified check: If scoreboard or objective is null, log and return.
+		// Re-initialization is handled by the ServerTickEvents handler (lines 35-46).
 		if (scoreboard == null || objective == null) {
-			StormboundIslesMod.LOGGER.warn("Cannot update scores: Scoreboard or objective not initialized.");
-			if (currentServer != null) {
-				initialize(currentServer);
-				if (scoreboard == null || objective == null) return;
-			} else {
-				return;
-			}
+			StormboundIslesMod.LOGGER.warn("Cannot update scores: Scoreboard or objective not initialized. Re-initialization will be attempted by the tick handler.");
+			return;
 		}
 
 		for (Map.Entry<String, Team> entry : DataManager.getTeams().entrySet()) {
 			Team team = entry.getValue();
 			String displayName = getDisplayNameForTeam(team);
+			// Use getOrCreateScoreAccess for clarity if available, otherwise stick to getOrCreateScore
 			ScoreAccess score = scoreboard.getOrCreateScore(ScoreHolder.fromName(displayName), objective);
 			if (score != null) {
 				score.setScore(team.getPoints());
