@@ -12,6 +12,7 @@ import de.nofelix.stormboundisles.data.Island;
 import de.nofelix.stormboundisles.data.PolygonZone;
 import de.nofelix.stormboundisles.disaster.DisasterManager;
 import de.nofelix.stormboundisles.disaster.DisasterType;
+import de.nofelix.stormboundisles.util.Constants;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -83,6 +84,11 @@ public class IslandCommands implements CommandCategory {
                         .suggests(CommandSuggestions.ISLAND_ID_SUGGESTIONS)
                         .executes(ctx -> {
                             ServerPlayerEntity player = ctx.getSource().getPlayer();
+                            if (player == null) {
+                                ctx.getSource().sendError(Constants.PLAYER_ONLY);
+                                return 0;
+                            }
+                            
                             Island isl = DataManager.getIsland(StringArgumentType.getString(ctx, "islandId"));
                             if (isl == null) {
                                 ctx.getSource().sendError(Text.literal("Island does not exist.")
@@ -134,8 +140,7 @@ public class IslandCommands implements CommandCategory {
                                                         .formatted(Formatting.YELLOW), false);
                                         return 1;
                                     } catch (IllegalArgumentException e) {
-                                        ctx.getSource().sendError(Text.literal("Invalid disaster type.")
-                                                .formatted(Formatting.RED));
+                                        ctx.getSource().sendError(Constants.INVALID_ARGUMENTS);
                                         return 0;
                                     }
                                 })
@@ -189,6 +194,11 @@ public class IslandCommands implements CommandCategory {
                         .suggests(CommandSuggestions.ISLAND_ID_SUGGESTIONS)
                         .executes(ctx -> {
                             ServerPlayerEntity player = ctx.getSource().getPlayer();
+                            if (player == null) {
+                                ctx.getSource().sendError(Constants.PLAYER_ONLY);
+                                return 0;
+                            }
+                            
                             UUID uid = player.getUuid();
                             String islandId = StringArgumentType.getString(ctx, "islandId");
                             
@@ -258,7 +268,13 @@ public class IslandCommands implements CommandCategory {
                 .then(CommandManager.argument("islandId", StringArgumentType.word())
                         .suggests(CommandSuggestions.ISLAND_ID_SUGGESTIONS)
                         .executes(ctx -> {
-                            UUID uid = ctx.getSource().getPlayer().getUuid();
+                            ServerPlayerEntity player = ctx.getSource().getPlayer();
+                            if (player == null) {
+                                ctx.getSource().sendError(Constants.PLAYER_ONLY);
+                                return 0;
+                            }
+                            
+                            UUID uid = player.getUuid();
                             String islandId = StringArgumentType.getString(ctx, "islandId");
                             PolygonBuilder pb = PolygonBuilderManager.startPolygon(uid, islandId);
                             
@@ -277,6 +293,11 @@ public class IslandCommands implements CommandCategory {
         polygonCommand.then(CommandManager.literal("add")
                 .executes(ctx -> {
                     ServerPlayerEntity player = ctx.getSource().getPlayer();
+                    if (player == null) {
+                        ctx.getSource().sendError(Constants.PLAYER_ONLY);
+                        return 0;
+                    }
+                    
                     UUID uid = player.getUuid();
                     PolygonBuilder pb = PolygonBuilderManager.getBuilder(uid);
                     if (pb == null) {
@@ -295,7 +316,13 @@ public class IslandCommands implements CommandCategory {
         // Polygon finish command
         polygonCommand.then(CommandManager.literal("finish")
                 .executes(ctx -> {
-                    UUID uid = ctx.getSource().getPlayer().getUuid();
+                    ServerPlayerEntity player = ctx.getSource().getPlayer();
+                    if (player == null) {
+                        ctx.getSource().sendError(Constants.PLAYER_ONLY);
+                        return 0;
+                    }
+                    
+                    UUID uid = player.getUuid();
                     PolygonBuilder pb = PolygonBuilderManager.removeBuilder(uid);
                     if (pb == null) {
                         ctx.getSource().sendError(Text.literal("No polygon in progress. Use /sbi island zone polygon start <islandId> first.")
@@ -303,8 +330,7 @@ public class IslandCommands implements CommandCategory {
                         return 0;
                     }
                     if (pb.getPointCount() < 3) {
-                        ctx.getSource().sendError(Text.literal("At least 3 points are required for a polygon.")
-                                .formatted(Formatting.RED));
+                        ctx.getSource().sendError(Constants.INVALID_ARGUMENTS);
                         return 0;
                     }
                     Island isl = DataManager.getIsland(pb.getIslandId());

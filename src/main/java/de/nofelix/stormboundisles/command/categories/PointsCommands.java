@@ -10,10 +10,10 @@ import de.nofelix.stormboundisles.command.util.CommandSuggestions;
 import de.nofelix.stormboundisles.data.DataManager;
 import de.nofelix.stormboundisles.data.Team;
 import de.nofelix.stormboundisles.game.ScoreboardManager;
+import de.nofelix.stormboundisles.util.Constants;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 
 /**
  * Handles team points management commands for the Stormbound Isles mod.
@@ -87,8 +87,7 @@ public class PointsCommands implements CommandCategory {
                                  boolean isAddition, boolean hasReason) {
         Team team = DataManager.getTeam(StringArgumentType.getString(ctx, "team"));
         if (team == null) {
-            ctx.getSource().sendError(Text.literal("Team does not exist.")
-                    .formatted(Formatting.RED));
+            ctx.getSource().sendError(Constants.TEAM_NOT_FOUND);
             return 0;
         }
         

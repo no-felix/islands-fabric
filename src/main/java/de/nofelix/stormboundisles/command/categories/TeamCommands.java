@@ -9,6 +9,7 @@ import de.nofelix.stormboundisles.data.DataManager;
 import de.nofelix.stormboundisles.data.Island;
 import de.nofelix.stormboundisles.data.Team;
 import de.nofelix.stormboundisles.game.ScoreboardManager;
+import de.nofelix.stormboundisles.util.Constants;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -77,15 +78,13 @@ public class TeamCommands implements CommandCategory {
                             String teamName = StringArgumentType.getString(ctx, "teamName");
                             Team team = DataManager.getTeam(teamName);
                             if (team == null) {
-                                ctx.getSource().sendError(Text.literal("Team does not exist.")
-                                        .formatted(Formatting.RED));
+                                ctx.getSource().sendError(Constants.TEAM_NOT_FOUND);
                                 return 0;
                             }
                             ServerPlayerEntity target = ctx.getSource().getServer()
                                     .getPlayerManager().getPlayer(StringArgumentType.getString(ctx, "player"));
                             if (target == null) {
-                                ctx.getSource().sendError(Text.literal("Player not found.")
-                                        .formatted(Formatting.RED));
+                                ctx.getSource().sendError(Constants.PLAYER_NOT_FOUND);
                                 return 0;
                             }
                             
@@ -134,8 +133,7 @@ public class TeamCommands implements CommandCategory {
                     ServerPlayerEntity target = ctx.getSource().getServer()
                             .getPlayerManager().getPlayer(StringArgumentType.getString(ctx, "player"));
                     if (target == null) {
-                        ctx.getSource().sendError(Text.literal("Player not found.")
-                                .formatted(Formatting.RED));
+                        ctx.getSource().sendError(Constants.PLAYER_NOT_FOUND);
                         return 0;
                     }
                     
@@ -191,8 +189,7 @@ public class TeamCommands implements CommandCategory {
                             String teamName = StringArgumentType.getString(ctx, "teamName");
                             Team team = DataManager.getTeam(teamName);
                             if (team == null) {
-                                ctx.getSource().sendError(Text.literal("Team does not exist.")
-                                        .formatted(Formatting.RED));
+                                ctx.getSource().sendError(Constants.TEAM_NOT_FOUND);
                                 return 0;
                             }
                             

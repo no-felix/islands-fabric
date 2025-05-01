@@ -8,11 +8,11 @@ import de.nofelix.stormboundisles.command.util.CommandSuggestions;
 import de.nofelix.stormboundisles.data.DataManager;
 import de.nofelix.stormboundisles.data.Island;
 import de.nofelix.stormboundisles.data.Team;
+import de.nofelix.stormboundisles.util.Constants;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 
 /**
  * Handles player-focused commands in the Stormbound Isles mod.
@@ -41,8 +41,7 @@ public class PlayerCommands implements CommandCategory {
             // Info about the player running the command
             ServerPlayerEntity player = ctx.getSource().getPlayer();
             if (player == null) {
-                ctx.getSource().sendError(Text.literal("This command must be run by a player.")
-                        .formatted(Formatting.RED));
+                ctx.getSource().sendError(Constants.PLAYER_ONLY);
                 return 0;
             }
             
@@ -57,8 +56,7 @@ public class PlayerCommands implements CommandCategory {
                     ServerPlayerEntity target = ctx.getSource().getServer()
                             .getPlayerManager().getPlayer(StringArgumentType.getString(ctx, "player"));
                     if (target == null) {
-                        ctx.getSource().sendError(Text.literal("Player not found.")
-                                .formatted(Formatting.RED));
+                        ctx.getSource().sendError(Constants.PLAYER_NOT_FOUND);
                         return 0;
                     }
                     
@@ -90,32 +88,32 @@ public class PlayerCommands implements CommandCategory {
      */
     private int displayPlayerInfo(com.mojang.brigadier.context.CommandContext<ServerCommandSource> ctx, 
                                ServerPlayerEntity player) {
-        StringBuilder sb = new StringBuilder("§6Player: §a" + player.getName().getString() + "§r\n");
+        StringBuilder sb = new StringBuilder(Constants.PLAYER_PREFIX + player.getName().getString() + Constants.RESET + "\n");
         
         // Find player's team
-        String teamInfo = "§7None§r";
+        String teamInfo = Constants.NO_TEAM;
         for (Team team : DataManager.getTeams().values()) {
             if (team.getMembers().contains(player.getUuid())) {
-                teamInfo = "§d" + team.getName() + "§r";
+                teamInfo = Constants.TEAM_PREFIX + team.getName() + Constants.RESET;
                 break;
             }
         }
         
-        sb.append("§6Team: ").append(teamInfo).append("\n");
-        sb.append("§6Position: §e").append(player.getBlockPos().getX())
+        sb.append(Constants.TEAM_PREFIX).append(teamInfo).append("\n");
+        sb.append(Constants.POSITION_PREFIX).append(player.getBlockPos().getX())
                 .append(", ").append(player.getBlockPos().getY())
                 .append(", ").append(player.getBlockPos().getZ())
-                .append("§r\n");
+                .append(Constants.RESET).append("\n");
         
         // Check what island they're in
-        String currentIsland = "§7None§r";
+        String currentIsland = Constants.NO_ISLAND;
         for (Island island : DataManager.getIslands().values()) {
             if (island.getZone() != null && island.getZone().contains(player.getBlockPos())) {
-                currentIsland = "§e" + island.getId() + "§r";
+                currentIsland = Constants.ISLAND_PREFIX + island.getId() + Constants.RESET;
                 break;
             }
         }
-        sb.append("§6Current Island: ").append(currentIsland);
+        sb.append(Constants.ISLAND_PREFIX).append(currentIsland);
         
         ctx.getSource().sendFeedback(() -> Text.literal(sb.toString()), false);
         return 1;

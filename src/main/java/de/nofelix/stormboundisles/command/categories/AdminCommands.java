@@ -8,6 +8,7 @@ import de.nofelix.stormboundisles.command.util.CommandSuggestions;
 import de.nofelix.stormboundisles.data.DataManager;
 import de.nofelix.stormboundisles.game.GameManager;
 import de.nofelix.stormboundisles.game.GamePhase;
+import de.nofelix.stormboundisles.util.Constants;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -82,7 +83,7 @@ public class AdminCommands implements CommandCategory {
                                         Text.literal("Phase set to " + phase).formatted(Formatting.GREEN), false);
                                 return 1;
                             } catch (IllegalArgumentException e) {
-                                ctx.getSource().sendError(Text.literal("Invalid phase.").formatted(Formatting.RED));
+                                ctx.getSource().sendError(Constants.INVALID_ARGUMENTS);
                                 return 0;
                             }
                         })
