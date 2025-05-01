@@ -43,7 +43,12 @@ public class InitializationRegistry {
             // Find all methods annotated with @Initialize
             Set<Method> initMethods = reflections.getMethodsAnnotatedWith(Initialize.class);
             
-            // Filter out non-static or methods with parameters
+            if (initMethods.isEmpty()) {
+                StormboundIslesMod.LOGGER.warn("No initialization methods found in package: {}", basePackage);
+                return;
+            }
+            
+            // Filter out non-static or methods with parameters - using modern pattern matching
             Set<Method> validMethods = initMethods.stream()
                     .filter(method -> Modifier.isStatic(method.getModifiers()))
                     .filter(method -> method.getParameterCount() == 0)
@@ -51,16 +56,17 @@ public class InitializationRegistry {
                     .collect(Collectors.toSet());
             
             if (initMethods.size() != validMethods.size()) {
-                StormboundIslesMod.LOGGER.warn("{} initialization methods were invalid and will be skipped", 
-                        initMethods.size() - validMethods.size());
+                StormboundIslesMod.LOGGER.warn("{} initialization methods were invalid and will be skipped: {}", 
+                        initMethods.size() - validMethods.size(),
+                        initMethods.stream()
+                            .filter(m -> !validMethods.contains(m))
+                            .map(m -> m.getDeclaringClass().getSimpleName() + "." + m.getName())
+                            .collect(Collectors.joining(", ")));
             }
             
-            // Sort by priority (higher priority first)
+            // Sort by priority (higher priority first) - using modern method reference
             validMethods.stream()
-                    .sorted(Comparator.comparingInt(method -> {
-                        Initialize annotation = method.getAnnotation(Initialize.class);
-                        return -annotation.priority(); // Negative to sort higher values first
-                    }))
+                    .sorted(Comparator.comparingInt(InitializationRegistry::getPriorityInverse))
                     .forEach(method -> {
                         Initialize annotation = method.getAnnotation(Initialize.class);
                         String description = annotation.description().isEmpty() 
@@ -73,6 +79,8 @@ public class InitializationRegistry {
                                     description);
                             
                             method.invoke(null);
+                            StormboundIslesMod.LOGGER.trace("Successfully called {}.{}", 
+                                    method.getDeclaringClass().getSimpleName(), method.getName());
                         } catch (Exception e) {
                             StormboundIslesMod.LOGGER.error("Failed to call initialization method: {}.{}",
                                     method.getDeclaringClass().getSimpleName(), method.getName(), e);
@@ -84,6 +92,17 @@ public class InitializationRegistry {
         } catch (Exception e) {
             StormboundIslesMod.LOGGER.error("Failed to scan for initialization methods", e);
         }
+    }
+    
+    /**
+     * Gets the inverse priority value for sorting (higher priority methods run first).
+     * 
+     * @param method The method to get priority for
+     * @return The negative priority value (for sorting in descending order)
+     */
+    private static int getPriorityInverse(Method method) {
+        Initialize annotation = method.getAnnotation(Initialize.class);
+        return -annotation.priority(); // Negative to sort higher values first
     }
     
     /**
