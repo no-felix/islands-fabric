@@ -253,22 +253,19 @@ public class DisasterManager {
 	
 	/**
 	 * Removes any disasters that have passed their expiration time.
+	 * Uses an iterator approach to efficiently remove entries while iterating.
 	 */
 	private static void checkExpiredDisasters() {
 	    long currentTime = System.currentTimeMillis();
-	    List<String> expiredDisasters = new ArrayList<>();
+	    Iterator<Object2LongMap.Entry<String>> iterator = disasterExpirationTimes.object2LongEntrySet().iterator();
 	    
-	    // Find all expired disasters
-	    for (Object2LongMap.Entry<String> entry : disasterExpirationTimes.object2LongEntrySet()) {
+	    while (iterator.hasNext()) {
+	        Object2LongMap.Entry<String> entry = iterator.next();
 	        if (currentTime > entry.getLongValue()) {
-	            expiredDisasters.add(entry.getKey());
+	            String key = entry.getKey();
+	            activeDisasters.remove(key);
+	            iterator.remove(); // Safe removal during iteration
 	        }
-	    }
-	    
-	    // Remove them from both collections
-	    for (String key : expiredDisasters) {
-	        activeDisasters.remove(key);
-	        disasterExpirationTimes.remove(key);
 	    }
 	}
 	

@@ -14,6 +14,7 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
@@ -88,6 +89,9 @@ public class AdminCommands implements CommandCategory {
                     UUID playerUuid = ctx.getSource().getPlayer().getUuid();
                     long currentTime = System.currentTimeMillis();
                     
+                    // Clean up expired confirmations to prevent memory buildup
+                    cleanupExpiredConfirmations(currentTime);
+                    
                     if (resetConfirmations.containsKey(playerUuid) &&
                             currentTime - resetConfirmations.get(playerUuid) < CONFIRMATION_TIMEOUT_MS) {
                         // Confirmed, perform reset
@@ -112,5 +116,21 @@ public class AdminCommands implements CommandCategory {
                 
         // Add admin category to root command
         rootCommand.then(adminCommand);
+    }
+    
+    /**
+     * Cleans up expired confirmation entries to prevent memory buildup.
+     * Removes any confirmation entries that have timed out.
+     * 
+     * @param currentTime The current system time in milliseconds
+     */
+    private void cleanupExpiredConfirmations(long currentTime) {
+        Iterator<Map.Entry<UUID, Long>> iterator = resetConfirmations.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<UUID, Long> entry = iterator.next();
+            if (currentTime - entry.getValue() >= CONFIRMATION_TIMEOUT_MS) {
+                iterator.remove();
+            }
+        }
     }
 }
