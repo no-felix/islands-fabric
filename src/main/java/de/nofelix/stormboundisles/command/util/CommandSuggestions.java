@@ -12,26 +12,45 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Utility class for command suggestions.
+ * Utility class for command argument suggestions in the Stormbound Isles mod.
+ * <p>
+ * This class centralizes all suggestion providers used throughout the command system,
+ * making them easily accessible from any command implementation. It provides suggestion
+ * providers for islands, teams, players, game phases, and disaster types.
+ * <p>
+ * All providers must be initialized before use by calling the {@link #initialize()} method.
  */
 public class CommandSuggestions {
-    // Cached suggestion lists
+    /** Cached list of game phase names for suggestions */
     private static List<String> GAME_PHASE_NAMES;
+    
+    /** Cached list of disaster type names for suggestions */
     private static List<String> DISASTER_TYPE_NAMES;
     
-    // Suggestion providers
+    /** Suggests island IDs from the data manager */
     public static SuggestionProvider<ServerCommandSource> ISLAND_ID_SUGGESTIONS;
+    
+    /** Suggests team names from the data manager */
     public static SuggestionProvider<ServerCommandSource> TEAM_NAME_SUGGESTIONS;
+    
+    /** Suggests disaster types from the DisasterType enum */
     public static SuggestionProvider<ServerCommandSource> DISASTER_TYPE_SUGGESTIONS;
+    
+    /** Suggests game phases from the GamePhase enum */
     public static SuggestionProvider<ServerCommandSource> GAME_PHASE_SUGGESTIONS;
+    
+    /** Suggests online player names from the server's player manager */
     public static SuggestionProvider<ServerCommandSource> PLAYER_SUGGESTIONS;
     
     /**
-     * Initialize all suggestion providers.
-     * Must be called before using any suggestion provider.
+     * Initializes all suggestion providers.
+     * <p>
+     * This method must be called before using any suggestion provider, typically during
+     * command system initialization. It caches enum values and creates the suggestion
+     * providers that will be used by command arguments.
      */
     public static void initialize() {
-        // Cache enum values
+        // Cache enum values to avoid recreating them for each suggestion
         GAME_PHASE_NAMES = Stream.of(GamePhase.values())
                 .map(Enum::name)
                 .collect(Collectors.toUnmodifiableList());

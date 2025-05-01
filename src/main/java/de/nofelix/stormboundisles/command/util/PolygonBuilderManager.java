@@ -10,38 +10,80 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Manages polygon building state for island zones.
+ * Manages polygon building state for island zones in the Stormbound Isles mod.
+ * <p>
+ * This manager maintains player polygon building sessions, allowing players to create 
+ * polygon or rectangle zones for islands through a multi-step process. Each player can
+ * have one active polygon building session at a time, identified by their UUID.
  */
 public class PolygonBuilderManager {
     /**
-     * Represents a polygon being built by a player.
+     * Represents a polygon zone being built by a player.
+     * <p>
+     * This class collects points added by the player and provides methods to create
+     * either a rectangle (from two points) or a full polygon (from three or more points).
      */
     public static class PolygonBuilder {
+        /** The island ID this polygon is being built for */
         private final String islandId;
+        
+        /** The list of points (block positions) in the polygon */
         private final List<BlockPos> points = new ArrayList<>();
         
+        /**
+         * Creates a new polygon builder for the specified island.
+         *
+         * @param islandId The ID of the island this polygon is being created for
+         */
         public PolygonBuilder(String islandId) {
             this.islandId = islandId;
         }
         
+        /**
+         * Gets the island ID this polygon is being built for.
+         *
+         * @return The island ID
+         */
         public String getIslandId() {
             return islandId;
         }
         
+        /**
+         * Gets the current list of points in the polygon.
+         *
+         * @return An unmodifiable view of the points list
+         */
         public List<BlockPos> getPoints() {
             return points;
         }
         
+        /**
+         * Adds a new point to the polygon.
+         *
+         * @param point The block position to add
+         */
         public void addPoint(BlockPos point) {
             points.add(point);
         }
         
+        /**
+         * Gets the number of points currently in the polygon.
+         *
+         * @return The number of points
+         */
         public int getPointCount() {
             return points.size();
         }
         
         /**
-         * Create a rectangle zone from the first two points.
+         * Creates a rectangular zone from two points.
+         * <p>
+         * Uses the first point in the current points list and the provided second point
+         * as opposite corners of a rectangle.
+         *
+         * @param secondPoint The opposite corner of the rectangle
+         * @return A new rectangular PolygonZone
+         * @throws IllegalStateException if no points have been added yet
          */
         public PolygonZone createRectangle(BlockPos secondPoint) {
             if (points.isEmpty()) {
@@ -53,7 +95,12 @@ public class PolygonBuilderManager {
         }
         
         /**
-         * Create a polygon zone from all points.
+         * Creates a polygon zone from all added points.
+         * <p>
+         * The polygon requires at least 3 points to be valid.
+         *
+         * @return A new PolygonZone containing all added points
+         * @throws IllegalStateException if fewer than 3 points have been added
          */
         public PolygonZone createPolygon() {
             if (points.size() < 3) {
@@ -64,10 +111,13 @@ public class PolygonBuilderManager {
         }
     }
     
+    /** Map of active polygon builders by player UUID */
     private static final Map<UUID, PolygonBuilder> polygonBuilders = new Object2ObjectOpenHashMap<>();
     
     /**
-     * Start a new polygon building session for a player.
+     * Starts a new polygon building session for a player.
+     * <p>
+     * If the player already has an active session, it will be replaced.
      * 
      * @param playerId The UUID of the player
      * @param islandId The ID of the island to build the polygon for
@@ -80,20 +130,22 @@ public class PolygonBuilderManager {
     }
     
     /**
-     * Get the current polygon builder for a player.
+     * Gets the current polygon builder for a player.
      * 
      * @param playerId The UUID of the player
-     * @return The polygon builder, or null if none exists
+     * @return The polygon builder, or null if the player has no active session
      */
     public static PolygonBuilder getBuilder(UUID playerId) {
         return polygonBuilders.get(playerId);
     }
     
     /**
-     * Remove and return the polygon builder for a player.
+     * Removes and returns the polygon builder for a player.
+     * <p>
+     * This should be called when a player completes or cancels a polygon building session.
      * 
      * @param playerId The UUID of the player
-     * @return The removed polygon builder, or null if none existed
+     * @return The removed polygon builder, or null if the player had no active session
      */
     public static PolygonBuilder removeBuilder(UUID playerId) {
         return polygonBuilders.remove(playerId);

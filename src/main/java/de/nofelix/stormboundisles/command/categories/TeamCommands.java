@@ -19,9 +19,21 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Handles team management commands.
+ * Handles team management commands for the Stormbound Isles mod.
+ * <p>
+ * This class provides commands for managing teams, including player assignment,
+ * removal from teams, and viewing team information. The commands are structured with
+ * different permission levels - all players can view team info, but only moderators
+ * can modify team membership.
+ * <p>
+ * All team commands update both the persistent data storage and the in-game scoreboards.
  */
 public class TeamCommands implements CommandCategory {
+    /**
+     * Registers all team management commands with the root command.
+     * 
+     * @param rootCommand The root command to add these commands to
+     */
     @Override
     public void register(LiteralArgumentBuilder<ServerCommandSource> rootCommand) {
         // Team category
@@ -43,7 +55,14 @@ public class TeamCommands implements CommandCategory {
     }
     
     /**
-     * Register the team assign command.
+     * Registers the team assign command.
+     * <p>
+     * This command allows moderators to assign players to specific teams.
+     * The command first removes the player from any existing teams,
+     * then adds them to the specified team, updating all necessary data.
+     * Both the command executor and the target player receive feedback.
+     * 
+     * @param teamCommand The parent team command to add this subcommand to
      */
     private void registerTeamAssignCommand(LiteralArgumentBuilder<ServerCommandSource> teamCommand) {
         LiteralArgumentBuilder<ServerCommandSource> assignCommand = 
@@ -96,7 +115,13 @@ public class TeamCommands implements CommandCategory {
     }
     
     /**
-     * Register the team remove command.
+     * Registers the team remove command.
+     * <p>
+     * This command allows moderators to remove players from all teams.
+     * It checks all teams to find and remove the player, then updates data storage
+     * and scoreboards. Both the command executor and the target player receive feedback.
+     * 
+     * @param teamCommand The parent team command to add this subcommand to
      */
     private void registerTeamRemoveCommand(LiteralArgumentBuilder<ServerCommandSource> teamCommand) {
         LiteralArgumentBuilder<ServerCommandSource> removeCommand = 
@@ -150,7 +175,13 @@ public class TeamCommands implements CommandCategory {
     }
     
     /**
-     * Register the team info command.
+     * Registers the team info command.
+     * <p>
+     * This command allows any player to view detailed information about a team,
+     * including its points, associated island, and member list with online status
+     * indicators. This command is available to all permission levels.
+     * 
+     * @param teamCommand The parent team command to add this subcommand to
      */
     private void registerTeamInfoCommand(LiteralArgumentBuilder<ServerCommandSource> teamCommand) {
         teamCommand.then(CommandManager.literal("info")

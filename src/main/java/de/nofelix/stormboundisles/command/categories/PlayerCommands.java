@@ -15,9 +15,18 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
 /**
- * Handles player-focused commands (player permission level).
+ * Handles player-focused commands in the Stormbound Isles mod.
+ * <p>
+ * This class provides commands for accessing player information. Regular players
+ * can view their own information, while moderators can view information about any player.
+ * The information includes the player's team, position, and current island.
  */
 public class PlayerCommands implements CommandCategory {
+    /**
+     * Registers all player-focused commands with the root command.
+     * 
+     * @param rootCommand The root command to add these commands to
+     */
     @Override
     public void register(LiteralArgumentBuilder<ServerCommandSource> rootCommand) {
         // Player category - available to everyone
@@ -65,11 +74,19 @@ public class PlayerCommands implements CommandCategory {
     }
     
     /**
-     * Display information about a player.
+     * Displays detailed information about a player.
+     * <p>
+     * This method gathers and formats information about the specified player, including:
+     * <ul>
+     *   <li>Player name</li>
+     *   <li>Team membership</li>
+     *   <li>Current position (coordinates)</li>
+     *   <li>Current island (based on polygon zone containment)</li>
+     * </ul>
      * 
      * @param ctx The command context
      * @param player The player to display information about
-     * @return Command success code
+     * @return 1 for success
      */
     private int displayPlayerInfo(com.mojang.brigadier.context.CommandContext<ServerCommandSource> ctx, 
                                ServerPlayerEntity player) {

@@ -22,9 +22,25 @@ import net.minecraft.util.math.BlockPos;
 import java.util.UUID;
 
 /**
- * Handles island management commands (moderator permission level).
+ * Handles island management commands for the Stormbound Isles mod.
+ * <p>
+ * This class provides moderator-level commands for managing islands, including:
+ * <ul>
+ *   <li>Disaster management (triggering and canceling disasters)</li>
+ *   <li>Zone definition (polygon and rectangle zones)</li>
+ *   <li>Island listing and information</li>
+ *   <li>Spawn point configuration</li>
+ * </ul>
+ * <p>
+ * The commands are organized in a hierarchical structure with nested subcommands
+ * to provide a clear and intuitive interface for server moderators.
  */
 public class IslandCommands implements CommandCategory {
+    /**
+     * Registers all island management commands with the root command.
+     * 
+     * @param rootCommand The root command to add these commands to
+     */
     @Override
     public void register(LiteralArgumentBuilder<ServerCommandSource> rootCommand) {
         // Island category
@@ -89,7 +105,13 @@ public class IslandCommands implements CommandCategory {
     }
     
     /**
-     * Register disaster management commands.
+     * Registers disaster management commands.
+     * <p>
+     * These commands allow moderators to trigger specific disasters on islands
+     * or cancel active disasters. The commands interact with the DisasterManager
+     * to manage island disaster states.
+     * 
+     * @param islandCommand The parent island command to add these subcommands to
      */
     private void registerDisasterCommands(LiteralArgumentBuilder<ServerCommandSource> islandCommand) {
         // Disaster subcategory
@@ -146,7 +168,13 @@ public class IslandCommands implements CommandCategory {
     }
     
     /**
-     * Register zone management commands.
+     * Registers zone management commands.
+     * <p>
+     * These commands allow moderators to define island zones using either
+     * rectangles (from two corner points) or arbitrary polygons (from multiple points).
+     * Zones are used to determine island boundaries for various game mechanics.
+     * 
+     * @param islandCommand The parent island command to add these subcommands to
      */
     private void registerZoneCommands(LiteralArgumentBuilder<ServerCommandSource> islandCommand) {
         // Zone subcategory
@@ -208,7 +236,18 @@ public class IslandCommands implements CommandCategory {
     }
     
     /**
-     * Register polygon zone commands.
+     * Registers polygon zone commands.
+     * <p>
+     * These commands provide a multi-step process for creating complex polygon zones:
+     * <ol>
+     *   <li>Start a polygon definition for an island</li>
+     *   <li>Add multiple points to the polygon at the player's position</li>
+     *   <li>Finish and save the polygon when all points are added</li>
+     * </ol>
+     * <p>
+     * This allows for more precise zone definitions than simple rectangles.
+     * 
+     * @param zoneCommand The parent zone command to add these subcommands to
      */
     private void registerPolygonCommands(LiteralArgumentBuilder<ServerCommandSource> zoneCommand) {
         // Polygon zone subcategory

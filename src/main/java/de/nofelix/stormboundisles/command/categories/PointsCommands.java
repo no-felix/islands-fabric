@@ -16,12 +16,23 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
 /**
- * Handles points management commands.
+ * Handles team points management commands for the Stormbound Isles mod.
+ * <p>
+ * This class provides commands for moderators to add or remove points from teams,
+ * with optional reasons that can be broadcast to all players. These commands are
+ * restricted to moderator permission level (2).
+ * <p>
+ * The commands update both the team's stored point value and the scoreboard display.
  */
 public class PointsCommands implements CommandCategory {
+    /**
+     * Registers all points management commands with the root command.
+     * 
+     * @param rootCommand The root command to add these commands to
+     */
     @Override
     public void register(LiteralArgumentBuilder<ServerCommandSource> rootCommand) {
-        // Points category - now entirely moderator level
+        // Points category - requires moderator level
         LiteralArgumentBuilder<ServerCommandSource> pointsCommand = 
                 CommandManager.literal("points")
                 .requires(CommandPermissions.requiresPermissionLevel(CommandPermissions.MODERATOR_PERMISSION_LEVEL));
@@ -61,12 +72,16 @@ public class PointsCommands implements CommandCategory {
     }
     
     /**
-     * Handle points addition or removal with consolidated logic.
+     * Handles points addition or removal with consolidated logic.
+     * <p>
+     * This method validates the team, applies the point change, updates the scoreboard,
+     * and provides appropriate feedback. If a reason is provided, the point change is
+     * broadcast to all players; otherwise, only the command executor is notified.
      * 
      * @param ctx The command context
      * @param isAddition Whether points are being added (true) or removed (false)
      * @param hasReason Whether a reason was provided
-     * @return Command success code
+     * @return 1 for success, 0 for failure
      */
     private int handlePointsChange(CommandContext<ServerCommandSource> ctx, 
                                  boolean isAddition, boolean hasReason) {

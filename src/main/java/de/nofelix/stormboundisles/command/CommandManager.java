@@ -11,11 +11,16 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.server.command.ServerCommandSource;
 
 /**
- * Main command manager for the mod.
- * Delegates commands to specialized command category handlers.
+ * Main command manager for the Stormbound Isles mod.
+ * <p>
+ * This class serves as the central entry point for the command system, coordinating all command categories
+ * and handling their registration with the Minecraft command dispatcher. It delegates command execution
+ * to specialized category implementations that each handle a specific subset of functionality.
+ * <p>
+ * The command manager also initializes the default islands and teams during construction.
  */
 public class CommandManager {
-    // Command constants
+    /** The root command name for all mod commands. */
     private static final String SBI = "sbi";
     
     // Command categories
@@ -25,6 +30,10 @@ public class CommandManager {
     private final PointsCommands pointsCommands;
     private final PlayerCommands playerCommands;
 
+    /**
+     * Creates a new command manager and initializes all command categories.
+     * Also initializes default islands and teams if they don't exist.
+     */
     public CommandManager() {
         // Initialize the command suggestions helper
         CommandSuggestions.initialize();
@@ -41,7 +50,9 @@ public class CommandManager {
     }
 
     /**
-     * Register all commands with the game.
+     * Registers all commands with the Minecraft command system.
+     * This hooks into Fabric's command registration API to add the mod's commands
+     * to the game.
      */
     public void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
@@ -62,7 +73,14 @@ public class CommandManager {
     }
     
     /**
-     * Initialize all islands and teams, ensuring they exist and are properly linked.
+     * Initializes all islands and teams, ensuring they exist and are properly linked.
+     * <p>
+     * For each {@link IslandType}, this method:
+     * <ol>
+     *   <li>Creates an island with the lowercase island type name as ID if it doesn't exist</li>
+     *   <li>Creates a team with the island type name if it doesn't exist</li>
+     *   <li>Links the island and team together if they aren't already linked</li>
+     * </ol>
      */
     private void initIslandsAndTeams() {
         for (IslandType type : IslandType.values()) {

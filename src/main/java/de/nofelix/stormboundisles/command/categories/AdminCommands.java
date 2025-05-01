@@ -19,15 +19,24 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Handles administrative commands (admin permission level).
+ * Handles administrative commands for the Stormbound Isles mod.
+ * <p>
+ * This class manages high-level administrative commands that require admin permission level (3).
+ * These commands include game lifecycle management (start, stop, phase control) and data reset
+ * functionality. The reset command includes a confirmation mechanism to prevent accidental data loss.
  */
 public class AdminCommands implements CommandCategory {
-    // Confirmation timeouts
-    private static final long CONFIRMATION_TIMEOUT_MS = 10000; // 10 seconds
+    /** Time window in milliseconds for confirming destructive actions (10 seconds) */
+    private static final long CONFIRMATION_TIMEOUT_MS = 10000;
     
-    // Store confirmation timestamps for destructive actions
+    /** Maps player UUIDs to timestamps for reset command confirmation */
     private final Map<UUID, Long> resetConfirmations = new Object2ObjectOpenHashMap<>();
 
+    /**
+     * Registers all administrative commands with the root command.
+     * 
+     * @param rootCommand The root command to add these commands to
+     */
     @Override
     public void register(LiteralArgumentBuilder<ServerCommandSource> rootCommand) {
         // Admin category
@@ -120,7 +129,9 @@ public class AdminCommands implements CommandCategory {
     
     /**
      * Cleans up expired confirmation entries to prevent memory buildup.
-     * Removes any confirmation entries that have timed out.
+     * <p>
+     * This method iterates through all reset confirmations and removes any that have
+     * exceeded the timeout window, preventing memory leaks from abandoned confirmation requests.
      * 
      * @param currentTime The current system time in milliseconds
      */
