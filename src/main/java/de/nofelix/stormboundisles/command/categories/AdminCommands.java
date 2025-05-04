@@ -5,6 +5,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import de.nofelix.stormboundisles.command.CommandCategory;
 import de.nofelix.stormboundisles.command.util.CommandPermissions;
 import de.nofelix.stormboundisles.command.util.CommandSuggestions;
+import de.nofelix.stormboundisles.config.ConfigManager;
 import de.nofelix.stormboundisles.data.DataManager;
 import de.nofelix.stormboundisles.game.GameManager;
 import de.nofelix.stormboundisles.game.GamePhase;
@@ -27,9 +28,6 @@ import java.util.UUID;
  * functionality. The reset command includes a confirmation mechanism to prevent accidental data loss.
  */
 public class AdminCommands implements CommandCategory {
-    /** Time window in milliseconds for confirming destructive actions (10 seconds) */
-    private static final long CONFIRMATION_TIMEOUT_MS = 10000;
-    
     /** Maps player UUIDs to timestamps for reset command confirmation */
     private final Map<UUID, Long> resetConfirmations = new Object2ObjectOpenHashMap<>();
 
@@ -103,7 +101,7 @@ public class AdminCommands implements CommandCategory {
                     cleanupExpiredConfirmations(currentTime);
                     
                     if (resetConfirmations.containsKey(playerUuid) &&
-                            currentTime - resetConfirmations.get(playerUuid) < CONFIRMATION_TIMEOUT_MS) {
+                            currentTime - resetConfirmations.get(playerUuid) < ConfigManager.getPlayerResetConfirmationTimeoutMs()) {
                         // Confirmed, perform reset
                         resetConfirmations.remove(playerUuid);
                         DataManager.clearIslands();
@@ -117,7 +115,7 @@ public class AdminCommands implements CommandCategory {
                         // Ask for confirmation
                         resetConfirmations.put(playerUuid, currentTime);
                         ctx.getSource().sendFeedback(() ->
-                                Text.literal("⚠ WARNING: This will delete ALL game data. Run command again within 10 seconds to confirm.")
+                                Text.literal(Constants.RESET_CONFIRMATION_MESSAGE)
                                         .formatted(Formatting.RED, Formatting.BOLD), false);
                         return 1;
                     }
@@ -140,7 +138,7 @@ public class AdminCommands implements CommandCategory {
         Iterator<Map.Entry<UUID, Long>> iterator = resetConfirmations.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<UUID, Long> entry = iterator.next();
-            if (currentTime - entry.getValue() >= CONFIRMATION_TIMEOUT_MS) {
+            if (currentTime - entry.getValue() >= ConfigManager.getPlayerResetConfirmationTimeoutMs()) {
                 iterator.remove();
             }
         }

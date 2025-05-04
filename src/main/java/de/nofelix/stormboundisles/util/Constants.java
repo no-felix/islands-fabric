@@ -33,4 +33,8 @@ public class Constants {
 	public static final String NO_ISLAND = "§7None";
 	/** Reset formatting code */
 	public static final String RESET = "§r";
+	
+	// Command Constants
+	/** Reference to the configurable timeout duration for reset confirmation in milliseconds */
+	public static final String RESET_CONFIRMATION_MESSAGE = "⚠ WARNING: This will delete ALL game data. Run command again within 10 seconds to confirm.";
 }
