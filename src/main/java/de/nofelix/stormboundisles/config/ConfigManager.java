@@ -77,9 +77,9 @@ public final class ConfigManager {
 		}
 
 		// Log loaded/default values (consider logging nested structure)
-		log.info("Config loaded. Game(BuildTicks={}, PvpTicks={}, CountdownTicks={}), Player(BoundaryInterval={}, DeathPenalty={}, WarningCooldownMs={}), Buff(UpdateInterval={}, DurationTicks={}), Disaster(IntervalTicks={}, EffectDurationTicks={}, CooldownTicks={}, MeteorDamage={}, BlizzardFreezeTicks={})",
+		log.info("Config loaded. Game(BuildTicks={}, PvpTicks={}, CountdownTicks={}), Player(BoundaryInterval={}, DeathPenalty={}, WarningCooldownMs={}, ResetConfirmationTimeoutMs={}), Buff(UpdateInterval={}, DurationTicks={}), Disaster(IntervalTicks={}, EffectDurationTicks={}, CooldownTicks={}, MeteorDamage={}, BlizzardFreezeTicks={})",
 				config.game.buildPhaseTicks, config.game.pvpPhaseTicks, config.game.countdownDurationTicks,
-				config.player.boundaryCheckInterval, config.player.deathPenalty, config.player.boundaryWarningCooldownMs,
+				config.player.boundaryCheckInterval, config.player.deathPenalty, config.player.boundaryWarningCooldownMs, config.player.resetConfirmationTimeoutMs,
 				config.buff.buffUpdateInterval, config.buff.buffDurationTicks,
 				config.disaster.disasterIntervalTicks, config.disaster.disasterEffectDurationTicks, config.disaster.disasterCooldownTicks, config.disaster.meteorDamage, config.disaster.blizzardFreezeTicks
 		);
@@ -96,6 +96,7 @@ public final class ConfigManager {
 	public static int getPlayerBoundaryCheckInterval() { return config.player.boundaryCheckInterval; }
 	public static int getPlayerDeathPenalty() { return config.player.deathPenalty; }
 	public static long getPlayerBoundaryWarningCooldownMs() { return config.player.boundaryWarningCooldownMs; }
+	public static long getPlayerResetConfirmationTimeoutMs() { return config.player.resetConfirmationTimeoutMs; }
 
 	// Buff Settings
 	public static int getBuffUpdateInterval() { return config.buff.buffUpdateInterval; }
@@ -137,6 +138,8 @@ public final class ConfigManager {
 			int deathPenalty = 10;
 			/** Cooldown in milliseconds before a player receives another boundary warning message. Default: 3000ms (3 seconds). */
 			long boundaryWarningCooldownMs = 3000L;
+			/** Time window in milliseconds for confirming destructive actions like data reset. Default: 10000ms (10 seconds). */
+			long resetConfirmationTimeoutMs = 10000L;
 		}
 
 		/** Settings related to island buffs. */

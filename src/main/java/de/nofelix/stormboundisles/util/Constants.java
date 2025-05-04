@@ -19,4 +19,22 @@ public class Constants {
 	public static final Text PLAYER_NOT_FOUND = PREFIX.copy().append(Text.literal("Player not found!").formatted(Formatting.RED));
 	/** Message displayed when a specified team cannot be found. */
 	public static final Text TEAM_NOT_FOUND = PREFIX.copy().append(Text.literal("Team not found!").formatted(Formatting.RED));
+	/** Formatted prefix for player-related information */
+	public static final String PLAYER_PREFIX = "§6Player: §d";
+	/** Formatted prefix for team-related information */
+	public static final String TEAM_PREFIX = "§6Team: ";
+	/** Formatted prefix for position-related information */
+	public static final String POSITION_PREFIX = "§6Position: §e";
+	/** Formatted prefix for island-related information */
+	public static final String ISLAND_PREFIX = "§6Island: ";
+	/** Formatted message for when a player is not on a team */
+	public static final String NO_TEAM = "§7None";
+	/** Formatted message for when a player is not in any island */
+	public static final String NO_ISLAND = "§7None";
+	/** Reset formatting code */
+	public static final String RESET = "§r";
+	
+	// Command Constants
+	/** Reference to the configurable timeout duration for reset confirmation in milliseconds */
+	public static final String RESET_CONFIRMATION_MESSAGE = "⚠ WARNING: This will delete ALL game data. Run command again within 10 seconds to confirm.";
 }
