@@ -16,7 +16,8 @@ import net.minecraft.util.math.BlockPos;
 import java.util.Optional;
 
 /**
- * Applies island‑specific buffs to players within their island zones at configured intervals.
+ * Applies island‑specific buffs to players within their island zones at
+ * configured intervals.
  */
 public class BuffAuraHandler {
 	private static final long LOG_INTERVAL = 10_000L;
@@ -35,7 +36,8 @@ public class BuffAuraHandler {
 	}
 
 	/**
-	 * Called each server tick; applies buffs when the configured interval has elapsed.
+	 * Called each server tick; applies buffs when the configured interval has
+	 * elapsed.
 	 *
 	 * @param server the running Minecraft server
 	 */
@@ -68,7 +70,8 @@ public class BuffAuraHandler {
 			BlockPos pos = player.getBlockPos();
 			if (island.getZone().contains(pos)) {
 				if (shouldLog) {
-					StormboundIslesMod.LOGGER.debug("Applying {} buff to {}", island.getType(), player.getName().getString());
+					StormboundIslesMod.LOGGER.debug("Applying {} buff to {}", island.getType(),
+							player.getName().getString());
 				}
 				applyBuff(player, island.getType());
 			}
@@ -85,15 +88,15 @@ public class BuffAuraHandler {
 		int duration = ConfigManager.getBuffDurationTicks();
 		StatusEffectInstance effect = switch (type) {
 			case DESERT ->
-					new StatusEffectInstance(StatusEffects.SPEED, duration, 0, true, AMBIENT, SHOW_PARTICLES);
+				new StatusEffectInstance(StatusEffects.SPEED, duration, 0, true, AMBIENT, SHOW_PARTICLES);
 			case VOLCANO ->
-					new StatusEffectInstance(StatusEffects.FIRE_RESISTANCE, duration, 0, true, AMBIENT, SHOW_PARTICLES);
+				new StatusEffectInstance(StatusEffects.FIRE_RESISTANCE, duration, 0, true, AMBIENT, SHOW_PARTICLES);
 			case ICE ->
-					new StatusEffectInstance(StatusEffects.RESISTANCE, duration, 0, true, AMBIENT, SHOW_PARTICLES);
+				new StatusEffectInstance(StatusEffects.RESISTANCE, duration, 0, true, AMBIENT, SHOW_PARTICLES);
 			case MUSHROOM ->
-					new StatusEffectInstance(StatusEffects.REGENERATION, duration, 0, true, AMBIENT, SHOW_PARTICLES);
+				new StatusEffectInstance(StatusEffects.REGENERATION, duration, 0, true, AMBIENT, SHOW_PARTICLES);
 			case CRYSTAL ->
-					new StatusEffectInstance(StatusEffects.HASTE, duration, 0, true, AMBIENT, SHOW_PARTICLES);
+				new StatusEffectInstance(StatusEffects.HASTE, duration, 0, true, AMBIENT, SHOW_PARTICLES);
 		};
 		player.addStatusEffect(effect);
 	}

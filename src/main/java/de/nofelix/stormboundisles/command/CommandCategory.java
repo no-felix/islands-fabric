@@ -4,7 +4,8 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.server.command.ServerCommandSource;
 
 /**
- * Represents a category of commands that can be registered with the CommandManager.
+ * Represents a category of commands that can be registered with the
+ * CommandManager.
  */
 public interface CommandCategory {
     /**

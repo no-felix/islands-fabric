@@ -164,8 +164,10 @@ public class Team {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
         Team team = (Team) o;
         return Objects.equals(name, team.name);
     }

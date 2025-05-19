@@ -12,11 +12,16 @@ public class Island {
 	private IslandType type;
 	/** The geographical zone this island belongs to. */
 	private Zone zone;
-	/** The name of the team currently assigned to this island. Null if unassigned. */
+	/**
+	 * The name of the team currently assigned to this island. Null if unassigned.
+	 */
 	private String teamName;
 	/** The X-coordinate of the custom spawn point for this island. */
 	private int spawnX = 0;
-	/** The Y-coordinate of the custom spawn point for this island. A value less than 0 indicates an undefined spawn point. */
+	/**
+	 * The Y-coordinate of the custom spawn point for this island. A value less than
+	 * 0 indicates an undefined spawn point.
+	 */
 	private int spawnY = -1;
 	/** The Z-coordinate of the custom spawn point for this island. */
 	private int spawnZ = 0;
@@ -176,8 +181,10 @@ public class Island {
 
 	@Override
 	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
 		Island island = (Island) o;
 		return Objects.equals(id, island.id);
 	}

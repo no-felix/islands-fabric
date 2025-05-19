@@ -16,8 +16,10 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Manages the scoreboard display and team assignments for the Stormbound Isles mod.
- * Handles scoreboard objectives for points and synchronizes Minecraft scoreboard teams
+ * Manages the scoreboard display and team assignments for the Stormbound Isles
+ * mod.
+ * Handles scoreboard objectives for points and synchronizes Minecraft
+ * scoreboard teams
  * with the custom team data stored in DataManager.
  */
 public class ScoreboardManager {
@@ -33,7 +35,8 @@ public class ScoreboardManager {
 		});
 
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
-			if (currentServer == null) currentServer = server;
+			if (currentServer == null)
+				currentServer = server;
 
 			if (server.getTicks() % 20 == 0) {
 				if (scoreboard != null && objective != null) {
@@ -85,8 +88,7 @@ public class ScoreboardManager {
 					Text.literal("§b§lStormbound Isles"),
 					ScoreboardCriterion.RenderType.INTEGER,
 					true,
-					null
-			);
+					null);
 			StormboundIslesMod.LOGGER.debug("Created scoreboard objective: {}", OBJECTIVE_NAME);
 		} catch (IllegalArgumentException e) {
 			objective = scoreboard.getNullableObjective(OBJECTIVE_NAME);
@@ -115,14 +117,16 @@ public class ScoreboardManager {
 		// Simplified check: If scoreboard or objective is null, log and return.
 		// Re-initialization is handled by the ServerTickEvents handler (lines 35-46).
 		if (scoreboard == null || objective == null) {
-			StormboundIslesMod.LOGGER.warn("Cannot update scores: Scoreboard or objective not initialized. Re-initialization will be attempted by the tick handler.");
+			StormboundIslesMod.LOGGER.warn(
+					"Cannot update scores: Scoreboard or objective not initialized. Re-initialization will be attempted by the tick handler.");
 			return;
 		}
 
 		for (Map.Entry<String, Team> entry : DataManager.getTeams().entrySet()) {
 			Team team = entry.getValue();
 			String displayName = getDisplayNameForTeam(team);
-			// Use getOrCreateScoreAccess for clarity if available, otherwise stick to getOrCreateScore
+			// Use getOrCreateScoreAccess for clarity if available, otherwise stick to
+			// getOrCreateScore
 			ScoreAccess score = scoreboard.getOrCreateScore(ScoreHolder.fromName(displayName), objective);
 			if (score != null) {
 				score.setScore(team.getPoints());
@@ -184,7 +188,8 @@ public class ScoreboardManager {
 
 	private static void addPlayerToScoreboardTeamOnJoin(ServerPlayerEntity player) {
 		if (scoreboard == null || player == null) {
-			StormboundIslesMod.LOGGER.warn("Cannot add player to scoreboard team: Scoreboard not initialized or player is null.");
+			StormboundIslesMod.LOGGER
+					.warn("Cannot add player to scoreboard team: Scoreboard not initialized or player is null.");
 			return;
 		}
 
@@ -206,21 +211,27 @@ public class ScoreboardManager {
 					scoreboard.addScoreHolderToTeam(playerName, sbTeam);
 					StormboundIslesMod.LOGGER.info("Added player {} to scoreboard team {}", playerName, targetTeamName);
 				} else {
-					StormboundIslesMod.LOGGER.debug("Player {} already in scoreboard team {}", playerName, targetTeamName);
+					StormboundIslesMod.LOGGER.debug("Player {} already in scoreboard team {}", playerName,
+							targetTeamName);
 				}
 			} else {
-				StormboundIslesMod.LOGGER.warn("Scoreboard team {} not found for player {} (DataManager team exists). Re-running setup.", targetTeamName, playerName);
+				StormboundIslesMod.LOGGER.warn(
+						"Scoreboard team {} not found for player {} (DataManager team exists). Re-running setup.",
+						targetTeamName, playerName);
 				setupScoreboardTeamProperties();
 				sbTeam = scoreboard.getTeam(targetTeamName);
 				if (sbTeam != null) {
 					scoreboard.addScoreHolderToTeam(playerName, sbTeam);
-					StormboundIslesMod.LOGGER.info("Added player {} to scoreboard team {} after re-setup.", playerName, targetTeamName);
+					StormboundIslesMod.LOGGER.info("Added player {} to scoreboard team {} after re-setup.", playerName,
+							targetTeamName);
 				} else {
-					StormboundIslesMod.LOGGER.error("Failed to find/create scoreboard team {} even after re-setup.", targetTeamName);
+					StormboundIslesMod.LOGGER.error("Failed to find/create scoreboard team {} even after re-setup.",
+							targetTeamName);
 				}
 			}
 		} else {
-			StormboundIslesMod.LOGGER.debug("Player {} not found in any DataManager team. Ensuring removal from scoreboard teams.", playerName);
+			StormboundIslesMod.LOGGER.debug(
+					"Player {} not found in any DataManager team. Ensuring removal from scoreboard teams.", playerName);
 			removePlayerFromAllScoreboardTeams(playerName);
 		}
 	}
@@ -233,7 +244,8 @@ public class ScoreboardManager {
 	}
 
 	private static void removePlayerFromAllScoreboardTeams(String playerName) {
-		if (scoreboard == null) return;
+		if (scoreboard == null)
+			return;
 
 		for (String teamName : DataManager.getTeams().keySet()) {
 			net.minecraft.scoreboard.Team sbTeam = scoreboard.getTeam(teamName);
@@ -246,7 +258,8 @@ public class ScoreboardManager {
 		AbstractTeam playerTeam = scoreboard.getScoreHolderTeam(playerName);
 		if (playerTeam instanceof net.minecraft.scoreboard.Team && DataManager.getTeam(playerTeam.getName()) == null) {
 			scoreboard.removeScoreHolderFromTeam(playerName, (net.minecraft.scoreboard.Team) playerTeam);
-			StormboundIslesMod.LOGGER.info("Removed player {} from non-DataManager scoreboard team {}.", playerName, playerTeam.getName());
+			StormboundIslesMod.LOGGER.info("Removed player {} from non-DataManager scoreboard team {}.", playerName,
+					playerTeam.getName());
 		}
 	}
 
@@ -257,9 +270,11 @@ public class ScoreboardManager {
 		}
 		currentServer = server;
 		if (scoreboard == null) {
-			StormboundIslesMod.LOGGER.warn("Scoreboard not initialized during updateAllTeams. Attempting initialization.");
+			StormboundIslesMod.LOGGER
+					.warn("Scoreboard not initialized during updateAllTeams. Attempting initialization.");
 			initialize(server);
-			if (scoreboard == null) return;
+			if (scoreboard == null)
+				return;
 		}
 
 		StormboundIslesMod.LOGGER.info("Refreshing all scoreboard team properties and online player assignments...");
@@ -270,9 +285,12 @@ public class ScoreboardManager {
 			AbstractTeam currentSbTeam = scoreboard.getScoreHolderTeam(player.getGameProfile().getName());
 			Team dataManagerTeam = getPlayerTeamFromDataManager(player.getUuid());
 
-			if (currentSbTeam instanceof net.minecraft.scoreboard.Team && (dataManagerTeam == null || !currentSbTeam.getName().equals(dataManagerTeam.getName()))) {
-				scoreboard.removeScoreHolderFromTeam(player.getGameProfile().getName(), (net.minecraft.scoreboard.Team) currentSbTeam);
-				StormboundIslesMod.LOGGER.debug("Removed player {} from incorrect scoreboard team {} during refresh.", player.getGameProfile().getName(), currentSbTeam.getName());
+			if (currentSbTeam instanceof net.minecraft.scoreboard.Team
+					&& (dataManagerTeam == null || !currentSbTeam.getName().equals(dataManagerTeam.getName()))) {
+				scoreboard.removeScoreHolderFromTeam(player.getGameProfile().getName(),
+						(net.minecraft.scoreboard.Team) currentSbTeam);
+				StormboundIslesMod.LOGGER.debug("Removed player {} from incorrect scoreboard team {} during refresh.",
+						player.getGameProfile().getName(), currentSbTeam.getName());
 			}
 
 			addPlayerToScoreboardTeamOnJoin(player);

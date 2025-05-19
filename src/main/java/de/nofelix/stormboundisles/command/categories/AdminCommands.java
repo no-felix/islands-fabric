@@ -23,9 +23,12 @@ import java.util.UUID;
 /**
  * Handles administrative commands for the Stormbound Isles mod.
  * <p>
- * This class manages high-level administrative commands that require admin permission level (3).
- * These commands include game lifecycle management (start, stop, phase control) and data reset
- * functionality. The reset command includes a confirmation mechanism to prevent accidental data loss.
+ * This class manages high-level administrative commands that require admin
+ * permission level (3).
+ * These commands include game lifecycle management (start, stop, phase control)
+ * and data reset
+ * functionality. The reset command includes a confirmation mechanism to prevent
+ * accidental data loss.
  */
 public class AdminCommands implements CommandCategory {
     /** Maps player UUIDs to timestamps for reset command confirmation */
@@ -39,35 +42,30 @@ public class AdminCommands implements CommandCategory {
     @Override
     public void register(LiteralArgumentBuilder<ServerCommandSource> rootCommand) {
         // Admin category
-        LiteralArgumentBuilder<ServerCommandSource> adminCommand = 
-                CommandManager.literal("admin")
+        LiteralArgumentBuilder<ServerCommandSource> adminCommand = CommandManager.literal("admin")
                 .requires(CommandPermissions.requiresPermissionLevel(CommandPermissions.ADMIN_PERMISSION_LEVEL));
-                
+
         // Game subcategory
         LiteralArgumentBuilder<ServerCommandSource> gameCommand = CommandManager.literal("game");
-                
+
         // Game start command
         gameCommand.then(CommandManager.literal("start")
                 .executes(ctx -> {
                     GameManager.startCountdown(ctx.getSource().getServer());
-                    ctx.getSource().sendFeedback(() ->
-                            Text.literal("Countdown to game start initiated.")
-                                    .formatted(Formatting.GREEN), true); // Broadcast to all players
+                    ctx.getSource().sendFeedback(() -> Text.literal("Countdown to game start initiated.")
+                            .formatted(Formatting.GREEN), true); // Broadcast to all players
                     return 1;
-                })
-        );
-                
+                }));
+
         // Game stop command
         gameCommand.then(CommandManager.literal("stop")
                 .executes(ctx -> {
                     GameManager.stopGame(ctx.getSource().getServer());
-                    ctx.getSource().sendFeedback(() ->
-                            Text.literal("Game stopped.")
-                                    .formatted(Formatting.RED), true); // Broadcast to all players
+                    ctx.getSource().sendFeedback(() -> Text.literal("Game stopped.")
+                            .formatted(Formatting.RED), true); // Broadcast to all players
                     return 1;
-                })
-        );
-                
+                }));
+
         // Game phase command
         gameCommand.then(CommandManager.literal("phase")
                 .then(CommandManager.argument("phase", StringArgumentType.word())
@@ -77,60 +75,59 @@ public class AdminCommands implements CommandCategory {
                             try {
                                 GamePhase phase = GamePhase.valueOf(phaseStr);
                                 GameManager.setPhase(phase, ctx.getSource().getServer());
-                                ctx.getSource().sendFeedback(() ->
-                                        Text.literal("Phase set to " + phase).formatted(Formatting.GREEN), false);
+                                ctx.getSource().sendFeedback(
+                                        () -> Text.literal("Phase set to " + phase).formatted(Formatting.GREEN), false);
                                 return 1;
                             } catch (IllegalArgumentException e) {
                                 ctx.getSource().sendError(Constants.INVALID_ARGUMENTS);
                                 return 0;
                             }
-                        })
-                )
-        );
-                
+                        })));
+
         // Add game subcategory to admin category
         adminCommand.then(gameCommand);
-                
+
         // Admin reset command
         adminCommand.then(CommandManager.literal("reset")
                 .executes(ctx -> {
                     UUID playerUuid = ctx.getSource().getPlayer().getUuid();
                     long currentTime = System.currentTimeMillis();
-                    
+
                     // Clean up expired confirmations to prevent memory buildup
                     cleanupExpiredConfirmations(currentTime);
-                    
+
                     if (resetConfirmations.containsKey(playerUuid) &&
-                            currentTime - resetConfirmations.get(playerUuid) < ConfigManager.getPlayerResetConfirmationTimeoutMs()) {
+                            currentTime - resetConfirmations.get(playerUuid) < ConfigManager
+                                    .getPlayerResetConfirmationTimeoutMs()) {
                         // Confirmed, perform reset
                         resetConfirmations.remove(playerUuid);
                         DataManager.clearIslands();
                         DataManager.clearTeams();
-                        
+
                         // Re-initialize with default islands (delegated to CommandManager)
-                        ctx.getSource().sendFeedback(() ->
-                                Text.literal("Game data reset successfully.").formatted(Formatting.GREEN), false);
+                        ctx.getSource().sendFeedback(
+                                () -> Text.literal("Game data reset successfully.").formatted(Formatting.GREEN), false);
                         return 1;
                     } else {
                         // Ask for confirmation
                         resetConfirmations.put(playerUuid, currentTime);
-                        ctx.getSource().sendFeedback(() ->
-                                Text.literal(Constants.RESET_CONFIRMATION_MESSAGE)
-                                        .formatted(Formatting.RED, Formatting.BOLD), false);
+                        ctx.getSource().sendFeedback(() -> Text.literal(Constants.RESET_CONFIRMATION_MESSAGE)
+                                .formatted(Formatting.RED, Formatting.BOLD), false);
                         return 1;
                     }
-                })
-        );
-                
+                }));
+
         // Add admin category to root command
         rootCommand.then(adminCommand);
     }
-    
+
     /**
      * Cleans up expired confirmation entries to prevent memory buildup.
      * <p>
-     * This method iterates through all reset confirmations and removes any that have
-     * exceeded the timeout window, preventing memory leaks from abandoned confirmation requests.
+     * This method iterates through all reset confirmations and removes any that
+     * have
+     * exceeded the timeout window, preventing memory leaks from abandoned
+     * confirmation requests.
      * 
      * @param currentTime The current system time in milliseconds
      */

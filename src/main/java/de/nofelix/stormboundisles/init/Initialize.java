@@ -6,13 +6,17 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Marks a method as an initialization method that should be automatically called
+ * Marks a method as an initialization method that should be automatically
+ * called
  * during the mod's startup sequence.
  * <p>
- * Methods marked with this annotation must be static, have no parameters, and return void.
- * They will be discovered and called by the {@link InitializationRegistry} during mod initialization.
+ * Methods marked with this annotation must be static, have no parameters, and
+ * return void.
+ * They will be discovered and called by the {@link InitializationRegistry}
+ * during mod initialization.
  * <p>
  * Example usage:
+ * 
  * <pre>{@code
  * @Initialize(priority = 100)
  * public static void initialize() {
@@ -32,7 +36,7 @@ public @interface Initialize {
      * @return The initialization priority
      */
     int priority() default 1000;
-    
+
     /**
      * Optional description of what this initialization method does.
      * For documentation purposes only.

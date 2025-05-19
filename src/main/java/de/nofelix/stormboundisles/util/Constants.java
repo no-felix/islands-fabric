@@ -9,16 +9,27 @@ import net.minecraft.util.Formatting;
 public class Constants {
 	/** Prefix used for mod-related messages. */
 	public static final Text PREFIX = Text.literal("[Stormbound Isles] ").formatted(Formatting.BLUE);
-	/** Message displayed when a player tries to execute a command without permission. */
-	public static final Text NO_PERMISSION = PREFIX.copy().append(Text.literal("You don't have permission to do that!").formatted(Formatting.RED));
-	/** Message displayed when a non-player entity tries to execute a player-only command. */
-	public static final Text PLAYER_ONLY = PREFIX.copy().append(Text.literal("This command can only be executed by players!").formatted(Formatting.RED));
+	/**
+	 * Message displayed when a player tries to execute a command without
+	 * permission.
+	 */
+	public static final Text NO_PERMISSION = PREFIX.copy()
+			.append(Text.literal("You don't have permission to do that!").formatted(Formatting.RED));
+	/**
+	 * Message displayed when a non-player entity tries to execute a player-only
+	 * command.
+	 */
+	public static final Text PLAYER_ONLY = PREFIX.copy()
+			.append(Text.literal("This command can only be executed by players!").formatted(Formatting.RED));
 	/** Message displayed when a command sender provides invalid arguments. */
-	public static final Text INVALID_ARGUMENTS = PREFIX.copy().append(Text.literal("Invalid arguments!").formatted(Formatting.RED));
+	public static final Text INVALID_ARGUMENTS = PREFIX.copy()
+			.append(Text.literal("Invalid arguments!").formatted(Formatting.RED));
 	/** Message displayed when a specified player cannot be found. */
-	public static final Text PLAYER_NOT_FOUND = PREFIX.copy().append(Text.literal("Player not found!").formatted(Formatting.RED));
+	public static final Text PLAYER_NOT_FOUND = PREFIX.copy()
+			.append(Text.literal("Player not found!").formatted(Formatting.RED));
 	/** Message displayed when a specified team cannot be found. */
-	public static final Text TEAM_NOT_FOUND = PREFIX.copy().append(Text.literal("Team not found!").formatted(Formatting.RED));
+	public static final Text TEAM_NOT_FOUND = PREFIX.copy()
+			.append(Text.literal("Team not found!").formatted(Formatting.RED));
 	/** Formatted prefix for player-related information */
 	public static final String PLAYER_PREFIX = "§6Player: §d";
 	/** Formatted prefix for team-related information */
@@ -33,8 +44,11 @@ public class Constants {
 	public static final String NO_ISLAND = "§7None";
 	/** Reset formatting code */
 	public static final String RESET = "§r";
-	
+
 	// Command Constants
-	/** Reference to the configurable timeout duration for reset confirmation in milliseconds */
+	/**
+	 * Reference to the configurable timeout duration for reset confirmation in
+	 * milliseconds
+	 */
 	public static final String RESET_CONFIRMATION_MESSAGE = "⚠ WARNING: This will delete ALL game data. Run command again within 10 seconds to confirm.";
 }

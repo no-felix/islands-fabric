@@ -22,7 +22,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Handles player-related events: death penalties and boundary enforcement during the build phase.
+ * Handles player-related events: death penalties and boundary enforcement
+ * during the build phase.
  */
 public final class PlayerEventHandler {
 	private static int boundaryCheckCounter = 0;
@@ -50,7 +51,8 @@ public final class PlayerEventHandler {
 	 * Called each server tick to enforce island boundaries in BUILD phase.
 	 */
 	private static void onServerTick(MinecraftServer server) {
-		if (GameManager.phase != GamePhase.BUILD) return;
+		if (GameManager.phase != GamePhase.BUILD)
+			return;
 
 		if (++boundaryCheckCounter < ConfigManager.getPlayerBoundaryCheckInterval()) {
 			return;
@@ -70,10 +72,12 @@ public final class PlayerEventHandler {
 				.filter(t -> t.getMembers().contains(player.getUuid()))
 				.findFirst();
 
-		if (team.isEmpty() || team.get().getIslandId() == null) return;
+		if (team.isEmpty() || team.get().getIslandId() == null)
+			return;
 
 		Island island = DataManager.getIsland(team.get().getIslandId());
-		if (island == null || island.getZone() == null) return;
+		if (island == null || island.getZone() == null)
+			return;
 
 		BlockPos pos = player.getBlockPos();
 		if (!island.getZone().contains(pos)) {

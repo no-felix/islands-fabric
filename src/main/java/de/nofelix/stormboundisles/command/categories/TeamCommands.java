@@ -23,11 +23,14 @@ import java.util.stream.Collectors;
  * Handles team management commands for the Stormbound Isles mod.
  * <p>
  * This class provides commands for managing teams, including player assignment,
- * removal from teams, and viewing team information. The commands are structured with
- * different permission levels - all players can view team info, but only moderators
+ * removal from teams, and viewing team information. The commands are structured
+ * with
+ * different permission levels - all players can view team info, but only
+ * moderators
  * can modify team membership.
  * <p>
- * All team commands update both the persistent data storage and the in-game scoreboards.
+ * All team commands update both the persistent data storage and the in-game
+ * scoreboards.
  */
 public class TeamCommands implements CommandCategory {
     /**
@@ -38,23 +41,26 @@ public class TeamCommands implements CommandCategory {
     @Override
     public void register(LiteralArgumentBuilder<ServerCommandSource> rootCommand) {
         // Team category
-        LiteralArgumentBuilder<ServerCommandSource> teamCommand = 
-                CommandManager.literal("team")
-                .requires(CommandPermissions.requiresPermissionLevel(CommandPermissions.PLAYER_PERMISSION_LEVEL)); // Base category available to all
-                
+        LiteralArgumentBuilder<ServerCommandSource> teamCommand = CommandManager.literal("team")
+                .requires(CommandPermissions.requiresPermissionLevel(CommandPermissions.PLAYER_PERMISSION_LEVEL)); // Base
+                                                                                                                   // category
+                                                                                                                   // available
+                                                                                                                   // to
+                                                                                                                   // all
+
         // Team assign command (moderator only)
         registerTeamAssignCommand(teamCommand);
-        
+
         // Team remove command (moderator only)
         registerTeamRemoveCommand(teamCommand);
-                
+
         // Team info command (all players)
         registerTeamInfoCommand(teamCommand);
-                
+
         // Add team category to root command
         rootCommand.then(teamCommand);
     }
-    
+
     /**
      * Registers the team assign command.
      * <p>
@@ -66,10 +72,9 @@ public class TeamCommands implements CommandCategory {
      * @param teamCommand The parent team command to add this subcommand to
      */
     private void registerTeamAssignCommand(LiteralArgumentBuilder<ServerCommandSource> teamCommand) {
-        LiteralArgumentBuilder<ServerCommandSource> assignCommand = 
-                CommandManager.literal("assign")
+        LiteralArgumentBuilder<ServerCommandSource> assignCommand = CommandManager.literal("assign")
                 .requires(CommandPermissions.requiresPermissionLevel(CommandPermissions.MODERATOR_PERMISSION_LEVEL));
-                
+
         assignCommand.then(CommandManager.argument("teamName", StringArgumentType.word())
                 .suggests(CommandSuggestions.TEAM_NAME_SUGGESTIONS)
                 .then(CommandManager.argument("player", StringArgumentType.word())
@@ -87,46 +92,43 @@ public class TeamCommands implements CommandCategory {
                                 ctx.getSource().sendError(Constants.PLAYER_NOT_FOUND);
                                 return 0;
                             }
-                            
+
                             // Remove player from all teams
                             for (Team t : DataManager.getTeams().values()) {
                                 t.removeMember(target.getUuid());
                             }
-                            
+
                             // Add player to specified team
                             team.addMember(target.getUuid());
                             DataManager.saveAll();
                             ScoreboardManager.updateAllTeams(ctx.getSource().getServer());
-                            ctx.getSource().sendFeedback(() ->
-                                    Text.literal("Assigned " + target.getName().getString() +
-                                            " to team " + teamName)
-                                            .formatted(Formatting.GREEN), false);
-                            
+                            ctx.getSource().sendFeedback(() -> Text.literal("Assigned " + target.getName().getString() +
+                                    " to team " + teamName)
+                                    .formatted(Formatting.GREEN), false);
+
                             // Notify the player
                             target.sendMessage(Text.literal("You have been assigned to team " + teamName)
                                     .formatted(Formatting.GREEN, Formatting.BOLD));
                             return 1;
-                        })
-                )
-        );
-        
+                        })));
+
         teamCommand.then(assignCommand);
     }
-    
+
     /**
      * Registers the team remove command.
      * <p>
      * This command allows moderators to remove players from all teams.
      * It checks all teams to find and remove the player, then updates data storage
-     * and scoreboards. Both the command executor and the target player receive feedback.
+     * and scoreboards. Both the command executor and the target player receive
+     * feedback.
      * 
      * @param teamCommand The parent team command to add this subcommand to
      */
     private void registerTeamRemoveCommand(LiteralArgumentBuilder<ServerCommandSource> teamCommand) {
-        LiteralArgumentBuilder<ServerCommandSource> removeCommand = 
-                CommandManager.literal("remove")
+        LiteralArgumentBuilder<ServerCommandSource> removeCommand = CommandManager.literal("remove")
                 .requires(CommandPermissions.requiresPermissionLevel(CommandPermissions.MODERATOR_PERMISSION_LEVEL));
-                
+
         removeCommand.then(CommandManager.argument("player", StringArgumentType.word())
                 .suggests(CommandSuggestions.PLAYER_SUGGESTIONS)
                 .executes(ctx -> {
@@ -136,10 +138,10 @@ public class TeamCommands implements CommandCategory {
                         ctx.getSource().sendError(Constants.PLAYER_NOT_FOUND);
                         return 0;
                     }
-                    
+
                     // Keep track if player was on any team
                     boolean wasOnTeam = false;
-                    
+
                     // Remove player from all teams
                     for (Team t : DataManager.getTeams().values()) {
                         if (t.getMembers().contains(target.getUuid())) {
@@ -147,31 +149,29 @@ public class TeamCommands implements CommandCategory {
                             t.removeMember(target.getUuid());
                         }
                     }
-                    
+
                     if (!wasOnTeam) {
-                        ctx.getSource().sendFeedback(() ->
-                                Text.literal(target.getName().getString() + " was not on any team.")
+                        ctx.getSource()
+                                .sendFeedback(() -> Text.literal(target.getName().getString() + " was not on any team.")
                                         .formatted(Formatting.YELLOW), false);
                         return 0;
                     }
-                    
+
                     DataManager.saveAll();
                     ScoreboardManager.updateAllTeams(ctx.getSource().getServer());
-                    ctx.getSource().sendFeedback(() ->
-                            Text.literal("Removed " + target.getName().getString() +
-                                    " from all teams.")
-                                    .formatted(Formatting.GREEN), false);
-                    
+                    ctx.getSource().sendFeedback(() -> Text.literal("Removed " + target.getName().getString() +
+                            " from all teams.")
+                            .formatted(Formatting.GREEN), false);
+
                     // Notify the player
                     target.sendMessage(Text.literal("You have been removed from your team")
                             .formatted(Formatting.YELLOW));
                     return 1;
-                })
-        );
-        
+                }));
+
         teamCommand.then(removeCommand);
     }
-    
+
     /**
      * Registers the team info command.
      * <p>
@@ -192,7 +192,7 @@ public class TeamCommands implements CommandCategory {
                                 ctx.getSource().sendError(Constants.TEAM_NOT_FOUND);
                                 return 0;
                             }
-                            
+
                             // Get island info if available
                             String islandInfo = "None";
                             if (team.getIslandId() != null) {
@@ -201,34 +201,33 @@ public class TeamCommands implements CommandCategory {
                                     islandInfo = island.getId() + " (" + island.getType() + ")";
                                 }
                             }
-                            
+
                             StringBuilder sb = new StringBuilder("§6Team: §d" + teamName + "§r\n");
                             sb.append("§6Points: §b").append(team.getPoints()).append("§r\n");
                             sb.append("§6Island: §e").append(islandInfo).append("§r\n");
                             sb.append("§6Members: §r");
-                            
+
                             List<String> members = team.getMembers().stream()
-                                .map(uuid -> {
-                                    ServerPlayerEntity player = ctx.getSource().getServer()
-                                        .getPlayerManager().getPlayer(uuid);
-                                    if (player != null) {
-                                        return "§a" + player.getName().getString() + "§r"; // Online
-                                    } else {
-                                        return "§7" + uuid.toString().substring(0, 8) + "§r"; // Offline or UUID only
-                                    }
-                                })
-                                .collect(Collectors.toList());
-                            
+                                    .map(uuid -> {
+                                        ServerPlayerEntity player = ctx.getSource().getServer()
+                                                .getPlayerManager().getPlayer(uuid);
+                                        if (player != null) {
+                                            return "§a" + player.getName().getString() + "§r"; // Online
+                                        } else {
+                                            return "§7" + uuid.toString().substring(0, 8) + "§r"; // Offline or UUID
+                                                                                                  // only
+                                        }
+                                    })
+                                    .collect(Collectors.toList());
+
                             if (members.isEmpty()) {
                                 sb.append("§7None§r");
                             } else {
                                 sb.append(String.join(", ", members));
                             }
-                            
+
                             ctx.getSource().sendFeedback(() -> Text.literal(sb.toString()), false);
                             return 1;
-                        })
-                )
-        );
+                        })));
     }
 }

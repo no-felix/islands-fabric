@@ -14,7 +14,8 @@ import java.io.IOException;
 
 /**
  * Manages loading, accessing, and saving the mod's configuration settings.
- * Configuration is loaded from `stormbound-isles-config.json` in the config directory.
+ * Configuration is loaded from `stormbound-isles-config.json` in the config
+ * directory.
  * If the file doesn't exist, default values are used and a new file is created.
  */
 public final class ConfigManager {
@@ -65,10 +66,14 @@ public final class ConfigManager {
 					}
 				} else {
 					// Ensure nested objects are not null if the file was partially valid
-					if (config.game == null) config.game = new Config.Game();
-					if (config.player == null) config.player = new Config.Player();
-					if (config.buff == null) config.buff = new Config.Buff();
-					if (config.disaster == null) config.disaster = new Config.Disaster();
+					if (config.game == null)
+						config.game = new Config.Game();
+					if (config.player == null)
+						config.player = new Config.Player();
+					if (config.buff == null)
+						config.buff = new Config.Buff();
+					if (config.disaster == null)
+						config.disaster = new Config.Disaster();
 				}
 			} catch (IOException | JsonSyntaxException e) {
 				log.error("Failed to load {} (using defaults): {}", CONFIG_FILENAME, e.getMessage());
@@ -77,38 +82,78 @@ public final class ConfigManager {
 		}
 
 		// Log loaded/default values (consider logging nested structure)
-		log.info("Config loaded. Game(BuildTicks={}, PvpTicks={}, CountdownTicks={}), Player(BoundaryInterval={}, DeathPenalty={}, WarningCooldownMs={}, ResetConfirmationTimeoutMs={}), Buff(UpdateInterval={}, DurationTicks={}), Disaster(IntervalTicks={}, EffectDurationTicks={}, CooldownTicks={}, MeteorDamage={}, BlizzardFreezeTicks={})",
+		log.info(
+				"Config loaded. Game(BuildTicks={}, PvpTicks={}, CountdownTicks={}), Player(BoundaryInterval={}, DeathPenalty={}, WarningCooldownMs={}, ResetConfirmationTimeoutMs={}), Buff(UpdateInterval={}, DurationTicks={}), Disaster(IntervalTicks={}, EffectDurationTicks={}, CooldownTicks={}, MeteorDamage={}, BlizzardFreezeTicks={})",
 				config.game.buildPhaseTicks, config.game.pvpPhaseTicks, config.game.countdownDurationTicks,
-				config.player.boundaryCheckInterval, config.player.deathPenalty, config.player.boundaryWarningCooldownMs, config.player.resetConfirmationTimeoutMs,
+				config.player.boundaryCheckInterval, config.player.deathPenalty,
+				config.player.boundaryWarningCooldownMs, config.player.resetConfirmationTimeoutMs,
 				config.buff.buffUpdateInterval, config.buff.buffDurationTicks,
-				config.disaster.disasterIntervalTicks, config.disaster.disasterEffectDurationTicks, config.disaster.disasterCooldownTicks, config.disaster.meteorDamage, config.disaster.blizzardFreezeTicks
-		);
+				config.disaster.disasterIntervalTicks, config.disaster.disasterEffectDurationTicks,
+				config.disaster.disasterCooldownTicks, config.disaster.meteorDamage,
+				config.disaster.blizzardFreezeTicks);
 	}
 
 	// --- Getters for Config Values ---
 
 	// Game Settings
-	public static int getGameBuildPhaseTicks() { return config.game.buildPhaseTicks; }
-	public static int getGamePvpPhaseTicks() { return config.game.pvpPhaseTicks; }
-	public static int getGameCountdownDurationTicks() { return config.game.countdownDurationTicks; }
+	public static int getGameBuildPhaseTicks() {
+		return config.game.buildPhaseTicks;
+	}
+
+	public static int getGamePvpPhaseTicks() {
+		return config.game.pvpPhaseTicks;
+	}
+
+	public static int getGameCountdownDurationTicks() {
+		return config.game.countdownDurationTicks;
+	}
 
 	// Player Settings
-	public static int getPlayerBoundaryCheckInterval() { return config.player.boundaryCheckInterval; }
-	public static int getPlayerDeathPenalty() { return config.player.deathPenalty; }
-	public static long getPlayerBoundaryWarningCooldownMs() { return config.player.boundaryWarningCooldownMs; }
-	public static long getPlayerResetConfirmationTimeoutMs() { return config.player.resetConfirmationTimeoutMs; }
+	public static int getPlayerBoundaryCheckInterval() {
+		return config.player.boundaryCheckInterval;
+	}
+
+	public static int getPlayerDeathPenalty() {
+		return config.player.deathPenalty;
+	}
+
+	public static long getPlayerBoundaryWarningCooldownMs() {
+		return config.player.boundaryWarningCooldownMs;
+	}
+
+	public static long getPlayerResetConfirmationTimeoutMs() {
+		return config.player.resetConfirmationTimeoutMs;
+	}
 
 	// Buff Settings
-	public static int getBuffUpdateInterval() { return config.buff.buffUpdateInterval; }
-	public static int getBuffDurationTicks() { return config.buff.buffDurationTicks; }
+	public static int getBuffUpdateInterval() {
+		return config.buff.buffUpdateInterval;
+	}
+
+	public static int getBuffDurationTicks() {
+		return config.buff.buffDurationTicks;
+	}
 
 	// Disaster Settings
-	public static int getDisasterIntervalTicks() { return config.disaster.disasterIntervalTicks; }
-	public static int getDisasterEffectDurationTicks() { return config.disaster.disasterEffectDurationTicks; }
-	public static int getDisasterCooldownTicks() { return config.disaster.disasterCooldownTicks; }
-	public static float getDisasterMeteorDamage() { return config.disaster.meteorDamage; }
-	public static int getDisasterBlizzardFreezeTicks() { return config.disaster.blizzardFreezeTicks; }
+	public static int getDisasterIntervalTicks() {
+		return config.disaster.disasterIntervalTicks;
+	}
 
+	public static int getDisasterEffectDurationTicks() {
+		return config.disaster.disasterEffectDurationTicks;
+	}
+
+	public static int getDisasterCooldownTicks() {
+		return config.disaster.disasterCooldownTicks;
+	}
+
+	public static float getDisasterMeteorDamage() {
+		return config.disaster.meteorDamage;
+	}
+
+	public static int getDisasterBlizzardFreezeTicks() {
+		return config.disaster.blizzardFreezeTicks;
+	}
 
 	/**
 	 * Root class representing the structure of the configuration file.
@@ -125,26 +170,41 @@ public final class ConfigManager {
 			/** Duration of the build phase in ticks. Default: 12096000 ticks (1 week). */
 			int buildPhaseTicks = 20 * 60 * 60 * 24 * 7; // 12096000
 			/** Duration of the PvP phase in ticks. Default: 12096000 ticks (1 week). */
-			int pvpPhaseTicks = 20 * 60 * 60 * 24 * 7;   // 12096000
-			/** Duration in ticks for the pre-game countdown. Default: 200 ticks (10 seconds). */
+			int pvpPhaseTicks = 20 * 60 * 60 * 24 * 7; // 12096000
+			/**
+			 * Duration in ticks for the pre-game countdown. Default: 200 ticks (10
+			 * seconds).
+			 */
 			int countdownDurationTicks = 20 * 10; // 200
 		}
 
 		/** Player-related settings like boundary checks and penalties. */
 		static class Player {
-			/** Interval in ticks for checking if players are outside their island boundaries. Default: 10 ticks. */
+			/**
+			 * Interval in ticks for checking if players are outside their island
+			 * boundaries. Default: 10 ticks.
+			 */
 			int boundaryCheckInterval = 10;
 			/** Points deducted from a team when a member dies. Default: 10 points. */
 			int deathPenalty = 10;
-			/** Cooldown in milliseconds before a player receives another boundary warning message. Default: 3000ms (3 seconds). */
+			/**
+			 * Cooldown in milliseconds before a player receives another boundary warning
+			 * message. Default: 3000ms (3 seconds).
+			 */
 			long boundaryWarningCooldownMs = 3000L;
-			/** Time window in milliseconds for confirming destructive actions like data reset. Default: 10000ms (10 seconds). */
+			/**
+			 * Time window in milliseconds for confirming destructive actions like data
+			 * reset. Default: 10000ms (10 seconds).
+			 */
 			long resetConfirmationTimeoutMs = 10000L;
 		}
 
 		/** Settings related to island buffs. */
 		static class Buff {
-			/** Interval in ticks for applying island-specific buffs. Default: 60 ticks (3 seconds). */
+			/**
+			 * Interval in ticks for applying island-specific buffs. Default: 60 ticks (3
+			 * seconds).
+			 */
 			int buffUpdateInterval = 60;
 			/** Duration in ticks for island buffs. Default: 80 ticks (4 seconds). */
 			int buffDurationTicks = 80;
@@ -152,15 +212,30 @@ public final class ConfigManager {
 
 		/** Settings related to disasters. */
 		static class Disaster {
-			/** Interval in ticks for attempting to trigger a random disaster. Default: 6000 ticks (5 minutes). */
+			/**
+			 * Interval in ticks for attempting to trigger a random disaster. Default: 6000
+			 * ticks (5 minutes).
+			 */
 			int disasterIntervalTicks = 20 * 60 * 5; // 6000
-			/** Duration in ticks for disaster status effects (Blindness, Poison, Levitation). Default: 100 ticks (5 seconds). */
+			/**
+			 * Duration in ticks for disaster status effects (Blindness, Poison,
+			 * Levitation). Default: 100 ticks (5 seconds).
+			 */
 			int disasterEffectDurationTicks = 100;
-			/** Cooldown in ticks before a disaster can re-trigger on the same island. Default: 100 ticks (5 seconds). */
+			/**
+			 * Cooldown in ticks before a disaster can re-trigger on the same island.
+			 * Default: 100 ticks (5 seconds).
+			 */
 			int disasterCooldownTicks = 100;
-			/** Damage dealt by a single meteor hit during the METEOR disaster. Default: 8.0F (4 hearts). */
+			/**
+			 * Damage dealt by a single meteor hit during the METEOR disaster. Default: 8.0F
+			 * (4 hearts).
+			 */
 			float meteorDamage = 8.0F;
-			/** Additional freeze ticks applied by the BLIZZARD disaster. Default: 200 ticks (10 seconds). */
+			/**
+			 * Additional freeze ticks applied by the BLIZZARD disaster. Default: 200 ticks
+			 * (10 seconds).
+			 */
 			int blizzardFreezeTicks = 200;
 		}
 	}

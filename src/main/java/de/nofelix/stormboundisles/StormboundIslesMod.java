@@ -22,7 +22,7 @@ public final class StormboundIslesMod implements ModInitializer {
 	public static final String BASE_PACKAGE = "de.nofelix.stormboundisles";
 
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-	
+
 	private CommandManager commandManager;
 
 	/**
@@ -34,14 +34,14 @@ public final class StormboundIslesMod implements ModInitializer {
 		LOGGER.info("Stormbound Isles Mod initializing...");
 		ConfigManager.loadConfig();
 		DataManager.loadAll();
-		
+
 		// Run all initialization methods discovered by the annotation scanner
 		InitializationRegistry.initializeAll(BASE_PACKAGE);
-		
+
 		// Initialize and register commands using the command manager
 		commandManager = new CommandManager();
 		commandManager.register();
-		
+
 		BuffAuraHandler.register();
 		GameManager.register();
 		DisasterManager.register();

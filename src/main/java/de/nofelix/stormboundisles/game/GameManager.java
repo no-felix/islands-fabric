@@ -22,18 +22,19 @@ import java.util.Random;
 import java.util.UUID;
 
 /**
- * Manages the overall game flow, including phases, timers, player states, and game events.
+ * Manages the overall game flow, including phases, timers, player states, and
+ * game events.
  */
 public class GameManager {
     /** The current phase of the game. */
     public static GamePhase phase = GamePhase.LOBBY;
     /** The number of ticks elapsed in the current game phase. */
     private static int phaseTicks = 0;
-    
+
     // BossBar related fields
     /** The server-side BossBar instance used to display phase information. */
     private static ServerBossBar phaseBar;
-    
+
     // Countdown related fields
     /** Flag indicating if the pre-game countdown is active. */
     private static boolean isStarting = false;
@@ -45,14 +46,15 @@ public class GameManager {
 
     /**
      * Registers game manager event listeners.
-     * Initializes BossBar restoration on server start and registers the server tick listener.
+     * Initializes BossBar restoration on server start and registers the server tick
+     * listener.
      */
     public static void register() {
         StormboundIslesMod.LOGGER.info("Registering GameManager");
         // Restore bossbar on server start when loading from game_state
         ServerLifecycleEvents.SERVER_STARTED.register(GameManager::setupBossBar);
         ServerTickEvents.END_SERVER_TICK.register(GameManager::onServerTick);
-        
+
         // Add player to bossbar when they join
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             if (phaseBar != null && phase != GamePhase.ENDED) {
@@ -61,19 +63,22 @@ public class GameManager {
         });
     }
 
-    /** 
+    /**
      * Returns the current phase tick count for persistence.
+     * 
      * @return The number of ticks elapsed in the current phase.
      */
     public static int getPhaseTicks() {
         return phaseTicks;
     }
 
-    /** 
-     * Restores the game phase and tick count without triggering phase transition logic.
+    /**
+     * Restores the game phase and tick count without triggering phase transition
+     * logic.
      * Used primarily for loading saved game state.
+     * 
      * @param newPhase The phase to set.
-     * @param ticks The number of ticks elapsed in that phase.
+     * @param ticks    The number of ticks elapsed in that phase.
      */
     public static void setPhaseWithoutReset(GamePhase newPhase, int ticks) {
         phase = newPhase;
@@ -83,20 +88,27 @@ public class GameManager {
     /**
      * Initiates a countdown before starting the build phase.
      * Displays a message and updates the BossBar.
+     * 
      * @param server The Minecraft server instance.
      */
     public static void startCountdown(MinecraftServer server) {
-        if (isStarting) return; // Prevent multiple countdowns
+        if (isStarting)
+            return; // Prevent multiple countdowns
 
         isStarting = true;
         countdownTicks = ConfigManager.getGameCountdownDurationTicks();
         setupBossBar(server);
-        server.getPlayerManager().broadcast(Text.literal("Game starting in " + (ConfigManager.getGameCountdownDurationTicks() / 20) + " seconds..."), false);
+        server.getPlayerManager()
+                .broadcast(Text.literal(
+                        "Game starting in " + (ConfigManager.getGameCountdownDurationTicks() / 20) + " seconds..."),
+                        false);
     }
 
     /**
      * Starts the game, transitioning to the BUILD phase.
-     * Teleports players, sets game mode, broadcasts messages, and initializes the scoreboard.
+     * Teleports players, sets game mode, broadcasts messages, and initializes the
+     * scoreboard.
+     * 
      * @param server The Minecraft server instance.
      */
     public static void startGame(MinecraftServer server) {
@@ -106,7 +118,7 @@ public class GameManager {
         teleportPlayersToIslands(server);
         setAllPlayersGameMode(server, GameMode.SURVIVAL);
         server.getPlayerManager().broadcast(Text.literal("Game started! Build phase begins."), false);
-        
+
         // Initialize scoreboard
         ScoreboardManager.initialize(server);
     }
@@ -114,6 +126,7 @@ public class GameManager {
     /**
      * Stops the game, transitioning to the ENDED phase.
      * Sets game mode, broadcasts messages, and removes the BossBar.
+     * 
      * @param server The Minecraft server instance.
      */
     public static void stopGame(MinecraftServer server) {
@@ -121,7 +134,7 @@ public class GameManager {
         setPhase(GamePhase.ENDED, server);
         setAllPlayersGameMode(server, GameMode.ADVENTURE);
         server.getPlayerManager().broadcast(Text.literal("Game stopped."), false);
-        
+
         // Remove bossbar completely - not just hide it
         removeBossBar();
     }
@@ -139,20 +152,22 @@ public class GameManager {
     }
 
     /**
-     * Transitions the game to a new phase, applying relevant game rules and player states.
+     * Transitions the game to a new phase, applying relevant game rules and player
+     * states.
      * Updates the BossBar and saves the game state.
+     * 
      * @param newPhase The target game phase.
-     * @param server The Minecraft server instance.
+     * @param server   The Minecraft server instance.
      */
     public static void setPhase(GamePhase newPhase, MinecraftServer server) {
         StormboundIslesMod.LOGGER.info("Changing phase from {} to {}", phase, newPhase);
         phase = newPhase;
         phaseTicks = 0;
-        
+
         // Update bossbar and persist
         setupBossBar(server);
         DataManager.saveGameState();
-        
+
         switch (phase) {
             case LOBBY, ENDED:
                 setPvp(server, false);
@@ -169,27 +184,28 @@ public class GameManager {
                 break;
         }
     }
-    
+
     /**
      * Sets up or updates the phase BossBar.
      * Creates the BossBar if it doesn't exist and adds all online players.
      * Configures the BossBar's appearance based on the current game state.
+     * 
      * @param server The Minecraft server instance.
      */
     public static void setupBossBar(MinecraftServer server) {
         // Remove existing BossBar to prevent duplicates
         removeBossBar();
-        
+
         // Don't create a BossBar in ENDED phase unless we're starting a countdown
         if (phase == GamePhase.ENDED && !isStarting) {
             return;
         }
-        
+
         // Create new BossBar with current phase settings
         phaseBar = new ServerBossBar(
-            getBossBarTitle(),               // Title based on current game phase
-            getBossBarColor(),               // Color based on current game phase
-            BossBar.Style.PROGRESS           // Style
+                getBossBarTitle(), // Title based on current game phase
+                getBossBarColor(), // Color based on current game phase
+                BossBar.Style.PROGRESS // Style
         );
 
         // Set initial progress based on current phase
@@ -203,9 +219,9 @@ public class GameManager {
             phaseBar.setPercent(1.0f);
         }
 
-        phaseBar.setVisible(true);      // Activate visibility
-        phaseBar.setDarkenSky(false);   // Don't darken the sky
-        phaseBar.setThickenFog(false);  // Don't thicken the fog
+        phaseBar.setVisible(true); // Activate visibility
+        phaseBar.setDarkenSky(false); // Don't darken the sky
+        phaseBar.setThickenFog(false); // Don't thicken the fog
         phaseBar.setDragonMusic(false); // Disable dragon music
 
         // Add all players to the BossBar
@@ -213,9 +229,11 @@ public class GameManager {
             phaseBar.addPlayer(player);
         }
     }
-    
+
     /**
-     * Gets the appropriate title text for the BossBar based on the current game phase.
+     * Gets the appropriate title text for the BossBar based on the current game
+     * phase.
+     * 
      * @return The Text object representing the BossBar title.
      */
     private static Text getBossBarTitle() {
@@ -223,43 +241,45 @@ public class GameManager {
             int seconds = countdownTicks / 20;
             return Text.literal("Starting in " + seconds + "s");
         }
-        
+
         if (phase == GamePhase.BUILD && phaseTicks > 0) {
             int remainingMinutes = (ConfigManager.getGameBuildPhaseTicks() - phaseTicks) / (20 * 60);
             return Text.literal("Build Phase - " + formatTime(remainingMinutes));
         }
-        
+
         if (phase == GamePhase.PVP && phaseTicks > 0) {
             int remainingMinutes = (ConfigManager.getGamePvpPhaseTicks() - phaseTicks) / (20 * 60);
             return Text.literal("PvP Phase - " + formatTime(remainingMinutes));
         }
-        
-	    return switch (phase) {
-		    case LOBBY -> Text.literal("Lobby Phase - Waiting to start");
-		    case BUILD -> Text.literal("Build Phase - PvP disabled");
-		    case PVP -> Text.literal("PvP Phase - Battle!");
-		    case ENDED -> Text.literal("Game Ended");
-		    default -> Text.literal("Unknown Phase");
-	    };
+
+        return switch (phase) {
+            case LOBBY -> Text.literal("Lobby Phase - Waiting to start");
+            case BUILD -> Text.literal("Build Phase - PvP disabled");
+            case PVP -> Text.literal("PvP Phase - Battle!");
+            case ENDED -> Text.literal("Game Ended");
+            default -> Text.literal("Unknown Phase");
+        };
     }
-    
+
     /**
      * Gets the appropriate color for the BossBar based on the current game phase.
+     * 
      * @return The BossBar.Color enum value.
      */
     private static BossBar.Color getBossBarColor() {
-	    return switch (phase) {
-		    case LOBBY -> BossBar.Color.WHITE;
-		    case BUILD -> BossBar.Color.GREEN;
-		    case PVP -> BossBar.Color.RED;
-		    case ENDED -> BossBar.Color.PURPLE;
-		    default -> BossBar.Color.WHITE;
-	    };
+        return switch (phase) {
+            case LOBBY -> BossBar.Color.WHITE;
+            case BUILD -> BossBar.Color.GREEN;
+            case PVP -> BossBar.Color.RED;
+            case ENDED -> BossBar.Color.PURPLE;
+            default -> BossBar.Color.WHITE;
+        };
     }
 
     /**
      * Configures server-wide PvP settings and related game rules.
-     * @param server The Minecraft server instance.
+     * 
+     * @param server  The Minecraft server instance.
      * @param enabled Whether PvP should be enabled.
      */
     private static void setPvp(MinecraftServer server, boolean enabled) {
@@ -278,8 +298,9 @@ public class GameManager {
 
     /**
      * Sets the game mode for all online players.
+     * 
      * @param server The Minecraft server instance.
-     * @param mode The GameMode to set.
+     * @param mode   The GameMode to set.
      */
     private static void setAllPlayersGameMode(MinecraftServer server, GameMode mode) {
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
@@ -291,9 +312,11 @@ public class GameManager {
 
     /**
      * Finds a random, clear spawn position near the island's defined spawn point.
-     * Attempts multiple random locations before falling back to the exact spawn point.
+     * Attempts multiple random locations before falling back to the exact spawn
+     * point.
+     * 
      * @param island The island to spawn on.
-     * @param world The server world.
+     * @param world  The server world.
      * @return A suitable BlockPos for spawning.
      */
     private static BlockPos getRandomSpawnPosition(Island island, ServerWorld world) {
@@ -315,10 +338,11 @@ public class GameManager {
     /**
      * Checks if a cylindrical area around a center point is clear for spawning.
      * Verifies that the ground block is solid and the space above is air.
-     * @param world The server world.
-     * @param cx Center X coordinate.
-     * @param cy Center Y coordinate (spawn height).
-     * @param cz Center Z coordinate.
+     * 
+     * @param world  The server world.
+     * @param cx     Center X coordinate.
+     * @param cy     Center Y coordinate (spawn height).
+     * @param cz     Center Z coordinate.
      * @param radius The radius of the area to check.
      * @return True if the area is clear, false otherwise.
      */
@@ -330,7 +354,7 @@ public class GameManager {
                     BlockPos ground = new BlockPos(cx + dx, cy - 1, cz + dz);
                     BlockPos pos = new BlockPos(cx + dx, cy, cz + dz);
                     if (!world.getBlockState(ground).isSolidBlock(world, ground) ||
-                        !world.getBlockState(pos).isAir()) {
+                            !world.getBlockState(pos).isAir()) {
                         return false;
                     }
                 }
@@ -340,25 +364,27 @@ public class GameManager {
     }
 
     /**
-     * Teleports all players belonging to teams to their assigned island's spawn point.
+     * Teleports all players belonging to teams to their assigned island's spawn
+     * point.
      * Uses the custom spawn point if defined, otherwise logs an error.
+     * 
      * @param server The Minecraft server instance.
      */
     private static void teleportPlayersToIslands(MinecraftServer server) {
         StormboundIslesMod.LOGGER.info("Teleporting players to their islands");
-        
+
         for (Team team : DataManager.getTeams().values()) {
             if (team.getIslandId() == null) {
                 StormboundIslesMod.LOGGER.warn("Team {} has no assigned island, skipping teleport", team.getName());
                 continue;
             }
-            
+
             Island island = DataManager.getIsland(team.getIslandId());
             if (island == null || island.getZone() == null) {
                 StormboundIslesMod.LOGGER.warn("Island {} not found or has no defined zone", team.getIslandId());
                 continue;
             }
-            
+
             for (UUID uuid : team.getMembers()) {
                 ServerPlayerEntity player = server.getPlayerManager().getPlayer(uuid);
                 if (player != null) {
@@ -367,15 +393,19 @@ public class GameManager {
                     if (island.getSpawnY() >= 0) {
                         target = getRandomSpawnPosition(island, server.getOverworld());
                     } else {
-                        StormboundIslesMod.LOGGER.error("Island {} has no defined spawn position, unable to teleport player", island.getId());
+                        StormboundIslesMod.LOGGER.error(
+                                "Island {} has no defined spawn position, unable to teleport player", island.getId());
                         // broadcast message to all players
-                        server.getPlayerManager().broadcast(Text.literal("Island " + island.getId() + " has no defined spawn position, unable to teleport " + player.getName()), false);
+                        server.getPlayerManager()
+                                .broadcast(Text.literal("Island " + island.getId()
+                                        + " has no defined spawn position, unable to teleport " + player.getName()),
+                                        false);
                         // skip teleportation for this player
                         continue;
                     }
                     player.teleport(server.getOverworld(),
-                        target.getX(), target.getY(), target.getZ(),
-                        player.getYaw(), player.getPitch());
+                            target.getX(), target.getY(), target.getZ(),
+                            player.getYaw(), player.getPitch());
                 }
             }
         }
@@ -384,6 +414,7 @@ public class GameManager {
     /**
      * Handles per-tick game logic, including countdowns and phase transitions.
      * Updates the phase timer BossBar and persists game state periodically.
+     * 
      * @param server The Minecraft server instance.
      */
     private static void onServerTick(MinecraftServer server) {
@@ -411,7 +442,7 @@ public class GameManager {
             if (phaseBar != null) {
                 float progress = 1.0f - ((float) phaseTicks / ConfigManager.getGameBuildPhaseTicks());
                 phaseBar.setPercent(progress);
-                
+
                 // Update title with remaining time every minute
                 if (phaseTicks % (20 * 60) == 0) {
                     int remainingMinutes = (ConfigManager.getGameBuildPhaseTicks() - phaseTicks) / (20 * 60);
@@ -420,9 +451,10 @@ public class GameManager {
                     DataManager.saveGameState();
                 }
             }
-            
+
             if (phaseTicks >= ConfigManager.getGameBuildPhaseTicks()) {
-                StormboundIslesMod.LOGGER.info("Build phase timer completed ({} ticks)", ConfigManager.getGameBuildPhaseTicks());
+                StormboundIslesMod.LOGGER.info("Build phase timer completed ({} ticks)",
+                        ConfigManager.getGameBuildPhaseTicks());
                 setPhase(GamePhase.PVP, server);
             }
         } else if (phase == GamePhase.PVP) {
@@ -431,7 +463,7 @@ public class GameManager {
             if (phaseBar != null) {
                 float progress = 1.0f - ((float) phaseTicks / ConfigManager.getGamePvpPhaseTicks());
                 phaseBar.setPercent(progress);
-                
+
                 // Update title with remaining time every minute
                 if (phaseTicks % (20 * 60) == 0) {
                     int remainingMinutes = (ConfigManager.getGamePvpPhaseTicks() - phaseTicks) / (20 * 60);
@@ -440,17 +472,20 @@ public class GameManager {
                     DataManager.saveGameState();
                 }
             }
-            
+
             if (phaseTicks >= ConfigManager.getGamePvpPhaseTicks()) {
-                StormboundIslesMod.LOGGER.info("PvP phase timer completed ({} ticks)", ConfigManager.getGamePvpPhaseTicks());
+                StormboundIslesMod.LOGGER.info("PvP phase timer completed ({} ticks)",
+                        ConfigManager.getGamePvpPhaseTicks());
                 setPhase(GamePhase.ENDED, server);
                 server.getPlayerManager().broadcast(Text.literal("Game ended!"), false);
             }
         }
     }
-    
+
     /**
-     * Formats a duration given in minutes into a human-readable string (e.g., "1h 30m", "2d 5h 10m").
+     * Formats a duration given in minutes into a human-readable string (e.g., "1h
+     * 30m", "2d 5h 10m").
+     * 
      * @param minutes The total number of minutes.
      * @return A formatted string representing the duration.
      */
@@ -458,17 +493,17 @@ public class GameManager {
         if (minutes < 60) {
             return minutes + " min";
         }
-        
+
         int hours = minutes / 60;
         int remainingMinutes = minutes % 60;
-        
+
         if (hours < 24) {
             return hours + "h " + remainingMinutes + "m";
         }
-        
+
         int days = hours / 24;
         int remainingHours = hours % 24;
-        
+
         return days + "d " + remainingHours + "h " + remainingMinutes + "m";
     }
 }
