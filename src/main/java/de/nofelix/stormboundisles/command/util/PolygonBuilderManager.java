@@ -1,6 +1,6 @@
 package de.nofelix.stormboundisles.command.util;
 
-import de.nofelix.stormboundisles.data.PolygonZone;
+import de.nofelix.stormboundisles.data.Zone;
 import de.nofelix.stormboundisles.init.Initialize;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.util.math.BlockPos;
@@ -83,16 +83,16 @@ public class PolygonBuilderManager {
          * as opposite corners of a rectangle.
          *
          * @param secondPoint The opposite corner of the rectangle
-         * @return A new rectangular PolygonZone
+         * @return A new rectangular Zone
          * @throws IllegalStateException if no points have been added yet
          */
-        public PolygonZone createRectangle(BlockPos secondPoint) {
+        public Zone createRectangle(BlockPos secondPoint) {
             if (points.isEmpty()) {
                 throw new IllegalStateException("No points defined for rectangle");
             }
             
             BlockPos firstPoint = points.get(0);
-            return PolygonZone.createRectangle(firstPoint, secondPoint);
+            return Zone.createRectangle(firstPoint, secondPoint);
         }
         
         /**
@@ -100,15 +100,15 @@ public class PolygonBuilderManager {
          * <p>
          * The polygon requires at least 3 points to be valid.
          *
-         * @return A new PolygonZone containing all added points
+         * @return A new Zone containing all added points
          * @throws IllegalStateException if fewer than 3 points have been added
          */
-        public PolygonZone createPolygon() {
+        public Zone createPolygon() {
             if (points.size() < 3) {
                 throw new IllegalStateException("At least 3 points are required for a polygon");
             }
             
-            return new PolygonZone(points);
+            return new Zone(points);
         }
     }
     

@@ -32,9 +32,7 @@ public final class DataManager {
     private static final String DATA_DIR_NAME = "stormboundisles";
     private static final String ISLANDS_FILENAME = "islands.json";
     private static final String TEAMS_FILENAME = "teams.json";
-    private static final String GAME_STATE_FILENAME = "game_state.json";
-
-    // JSON serialization configuration
+    private static final String GAME_STATE_FILENAME = "game_state.json";    // JSON serialization configuration
     private static final Gson GSON = new GsonBuilder()
             .setPrettyPrinting()
             .create();
